@@ -74,4 +74,6 @@ perform_gsea_and_clustering <- function(seurat_object,
     seurat_object,
     reduction = "umap",
     label = TRUE,
-    group
+    group)
+
+}
