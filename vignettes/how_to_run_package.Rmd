@@ -1,0 +1,137 @@
+---
+title: "how_to_run_package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{how_to_run_package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(SpatialIntegration)
+```
+
+
+The commented out lines detail how the NMF embeddings were computed. This takes a large amount of compute, so for efficiency the objects have been saved after nmf embedding and can be loaded directly in.
+
+# ```{r load geomx data and create suerat object}
+# 
+# #define file paths
+# file_paths <- list(
+#   "ACA_MOS_MOp_6mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_6mpi.RDS",
+#   "ACA_MOS_MOp_9mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_9mpi.RDS",
+#   "LAMDA" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_LAMDA.RDS",
+#   "MultiRegion" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_MultiRegion.RDS",
+#   "SNcAmygNew" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_SNcAmygNew.RDS"
+# )
+# 
+# 
+# 
+# #make suerat object
+# seurat_object <- combine_datasets_into_seurat(file_paths)
+# 
+# 
+# ```
+# 
+# 
+# 
+# ```{r get nmf embeddings}
+# seurat_object <- process_and_run_nmf(seurat_object, nmf_rank = 5)
+# RankPlot(seurat_object, detail.level = 2)
+# 
+# ```
+# 
+# 
+# ```{r load reference Allen data}
+# 
+# Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/Reference_MTG_RNAseq_all-nuclei.2022-06-07.rds")
+# 
+# ```
+# 
+# 
+# ```{r run NMF on allen data}
+# Allen_SEA_AD_Atlas <- process_and_run_nmf(Allen_SEA_AD_Atlas, nmf_rank = 5)
+# 
+# ```
+# 
+# 
+# ```{r save objects}
+# saveRDS(seurat_object,"seurat_object.rds")
+# saveRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
+# ```
+
+```{r load in nmf embedded data}
+
+readRDS(seurat_object,"seurat_object.rds")
+ReadRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
+
+
+```
+
+
+
+
+```{r do gsea and clustering on allen}
+
+Allen_SEA_AD_Atlas2 <- perform_gsea_and_clustering(Allen_SEA_AD_Atlas)
+Allen_SEA_AD_Atlas2$comparison_plot
+
+```
+
+
+
+```{r get matching rowname formats between objects}
+
+#since data contains some mouse genes and C7 is human only, match gene names to those in the MSigDB C7 category
+rownames(seurat_object) <- toupper(rownames(seurat_object))
+
+```
+
+```{r do gsea and clustering on spatial}
+seurat_object2 <- perform_gsea_and_clustering(seurat_object)
+seurat_object2$comparison_plot
+```
+
+```{r  pull out nmf data from each}
+
+nmf_allen<-Allen_SEA_AD_Atlas@reductions[["nmf"]]
+nmf_seurat<-seurat_object@reductions[["nmf"]]
+
+
+```
+
+
+```{r identify correlated dimensions}
+results <- nearest_neighbor_analysis(
+  nmf_seurat = nmf_seurat,
+  nmf_allen = nmf_allen,
+  seurat_object = seurat_object,
+  allen_object = Allen_SEA_AD_Atlas
+)
+
+results$correlation_matrix
+
+```
+
+
+#NMF_9 is the most correlated (r = 0.8), followed by NMF_8, 11, and 13
+#Identify the 20 top gene sets enriched in the most correlated NMFs and see if they are similar for the spatial and single cell data
+
+
+```{r plot top genesets of correlated dimensions}
+p <- plot_top20_enriched_pathways(
+  seurat_object = seurat_object,
+  allen_object = allen_object,
+  nmf_factor = 9,
+  output_file = "top20_enriched.pdf"
+)
+print(p)
+
+```
