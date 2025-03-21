@@ -83,6 +83,17 @@ The commented out lines detail how the NMF embeddings were computed. This takes 
 Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/Allen_SEA_AD_Atlas.rds")
 
 
+
+```
+
+
+
+```{r subset seurat object for upload to data file in package}
+
+seurat_object_sub<-subset_seurat_by_proportions(seurat_object = seurat_object, cell_type_col="segment", 500)
+allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell_type_col="subclass_label", 6000)
+
+
 ```
 
 
@@ -92,8 +103,10 @@ Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/Spat
 ```{r}
 
 
-seurat_merge<-merge_seurat_objects(seurat_object = seurat_object, Allen_SEA_AD_Atlas)
+seurat_merge<-merge_seurat_objects(seurat_object = seurat_object_sub, allen_sub)
 
+#save data to data file
+use_data(seurat_merge, compress = "bzip2", overwrite = TRUE)
 
 ```
 
