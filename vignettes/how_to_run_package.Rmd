@@ -14,8 +14,13 @@ knitr::opts_chunk$set(
 )
 ```
 
+
+
 ```{r setup}
 library(SpatialIntegration)
+library(stringr)
+library(Seurat)
+library(singlet)
 ```
 
 
@@ -67,10 +72,15 @@ The commented out lines detail how the NMF embeddings were computed. This takes 
 # saveRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
 # ```
 
+
+
+
+
+
 ```{r load in nmf embedded data}
 
-readRDS(seurat_object,"seurat_object.rds")
-ReadRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
+ seurat_object <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/seurat_object.rds")
+Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/Allen_SEA_AD_Atlas.rds")
 
 
 ```
@@ -78,60 +88,98 @@ ReadRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
 
 
 
-```{r do gsea and clustering on allen}
 
-Allen_SEA_AD_Atlas2 <- perform_gsea_and_clustering(Allen_SEA_AD_Atlas)
-Allen_SEA_AD_Atlas2$comparison_plot
-
-```
+```{r}
 
 
-
-```{r get matching rowname formats between objects}
-
-#since data contains some mouse genes and C7 is human only, match gene names to those in the MSigDB C7 category
-rownames(seurat_object) <- toupper(rownames(seurat_object))
-
-```
-
-```{r do gsea and clustering on spatial}
-seurat_object2 <- perform_gsea_and_clustering(seurat_object)
-seurat_object2$comparison_plot
-```
-
-```{r  pull out nmf data from each}
-
-nmf_allen<-Allen_SEA_AD_Atlas@reductions[["nmf"]]
-nmf_seurat<-seurat_object@reductions[["nmf"]]
+seurat_merge<-merge_seurat_objects(seurat_object = seurat_object, Allen_SEA_AD_Atlas)
 
 
 ```
 
 
-```{r identify correlated dimensions}
-results <- nearest_neighbor_analysis(
-  nmf_seurat = nmf_seurat,
-  nmf_allen = nmf_allen,
-  seurat_object = seurat_object,
-  allen_object = Allen_SEA_AD_Atlas
+
+
+```{r}
+
+seurat_merge<-process_and_run_nmf(seurat_merge, nmf_rank = 15)
+
+```
+
+```{r}
+p<-RankPlot(seurat_merge)
+
+ggsave(p,"rank_plot_nmfrank15.png")
+```
+
+
+
+```{r}
+
+
+seurat_merge<-perform_gsea_and_clustering(seurat_merge)
+
+
+```
+
+
+```{r}
+print(DimPlot(seurat_merge, reduction = "umap"))
+print(DimPlot(seurat_merge, reduction = "umap", group.by ="segment"))
+print(DimPlot(seurat_merge, reduction = "umap", group.by ="subclass_label"))
+print(DimPlot(seurat_merge, reduction = "umap", group.by ="class_label"))
+```
+
+
+```{r}
+plot_nmf_correlation_heatmap(seurat_merge, "cell_type_nmfFactor_corr.png")
+```
+
+```{r}
+
+FeaturePlot(seurat_merge, features = paste0("NMF_", c(6,15)), raster = FALSE)
+
+```
+
+
+
+
+
+```{r}
+plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
+  nmf_factor = 6,
+  output_file = "top20_enriched_nmf6.pdf"
 )
 
-results$correlation_matrix
 
-```
-
-
-#NMF_9 is the most correlated (r = 0.8), followed by NMF_8, 11, and 13
-#Identify the 20 top gene sets enriched in the most correlated NMFs and see if they are similar for the spatial and single cell data
-
-
-```{r plot top genesets of correlated dimensions}
-p <- plot_top20_enriched_pathways(
-  seurat_object = seurat_object,
-  allen_object = allen_object,
-  nmf_factor = 9,
-  output_file = "top20_enriched.pdf"
+plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
+  nmf_factor = 15,
+  output_file = "top20_enriched_nmf15.pdf"
 )
-print(p)
+
 
 ```
+
+
+
+
+
+```{r}
+
+GSEAHeatmap(seurat_merge, reduction = "nmf", max.terms.per.factor = 500)
+FeaturePlot(seurat_merge, features = paste0("NMF_", 1:10), raster = FALSE)
+DimPlot(seurat_merge, reduction = "umap", group.by ="segment")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

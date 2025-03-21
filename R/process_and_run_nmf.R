@@ -23,7 +23,8 @@ process_and_run_nmf <- function(seurat_object,
                                 nmf_reduction_key = "NMF_",
                                 seed = 16) {
   # Normalize, scale, and perform PCA
-  seurat_object <- NormalizeData(seurat_object)
+  #seurat_object <- NormalizeData(seurat_object)
+  seurat_object@assays$RNA$data<-seurat_object@assays$RNA$counts
   seurat_object <- ScaleData(seurat_object)
   seurat_object <- FindVariableFeatures(seurat_object)
   seurat_object <- Seurat::RunPCA(seurat_object)
@@ -31,41 +32,127 @@ process_and_run_nmf <- function(seurat_object,
   # Assign data slot to "layers"
   seurat_object@assays[["RNA"]]@layers[["data"]] <- seurat_object@assays[["RNA"]]@layers[["counts"]]
 
-  # Run NMF
   RunNMF.Seurat <- function(object,
+                            split.by = NULL,
                             k = NULL,
+                            assay = NULL,
+                            reps = 3,
+                            tol = 1e-5,
+                            L1 = 0.01,
+                            L2 = 0,
+                            verbose = 2,
                             reduction.name = "nmf",
                             reduction.key = "NMF_",
+                            maxit = 100,
+                            test.set.density = 0.05,
+                            learning.rate = 0.8,
+                            tol.overfit = 1e-4,
+                            trace.test.mse = 5,
+                            threads = 0,
+                            features = NULL,
                             ...) {
-    # Default assay and data validation
-    assay <- DefaultAssay(object)
+    if (is.null(assay)) {
+      assay <- DefaultAssay(object)
+    }
+
+    # Check if data has been normalized
     v <- GetAssayData(object, assay = assay, slot = "data")@x
     if (sum(as.integer(v)) == sum(v)) {
       object <- PreprocessData(object, assay = assay)
     }
     A <- GetAssayData(object, assay = assay, slot = "data")
+
+    if (!is.null(features)) {
+      if (features[[1]] == "var.features") {
+        A <- A[VariableFeatures(object, assay = assay), ]
+      } else if (is.integer(features) || is.character(features)) {
+        # Array of indices or rownames
+        A <- A[features, ]
+      } else {
+        stop("'features' vector was invalid.")
+      }
+    }
+
     rnames <- rownames(A)
     cnames <- colnames(A)
 
-    # Run NMF with a single rank or automatic determination
-    if (is.null(k)) {
-      nmf_model <- ard_nmf(A, k_max = 10, tol = 1e-5, maxit = 100, verbose = 2)
+    if (!is.null(split.by)) {
+      split.by <- as.integer(as.numeric(as.factor(object[[split.by]][, 1]))) - 1
+      if (any(sapply(split.by, is.na))) {
+        stop("'split.by' cannot contain NA values")
+      }
+      # Force A to clone itself by doing an in-place operation
+      A@x <- A@x + 1
+      A@x <- A@x - 1
+
+      # Apply weighting function
+      A <- weight_by_split(A, split.by, length(unique(split.by)))
+    }
+    At <- Matrix::t(A)
+    seed.use <- abs(.Random.seed[[3]])
+
+    if (!is.null(k) && length(k) > 1) {
+      # Run cross-validation at specified ranks
+      cv_data <- cross_validate_nmf(
+        A = A,
+        ranks = k,
+        n_replicates = reps,
+        tol = tol * 10,
+        maxit = maxit,
+        verbose = verbose,
+        L1 = L1,
+        L2 = L2,
+        threads = threads,
+        test_density = test.set.density,
+        tol_overfit = tol.overfit,
+        trace_test_mse = trace.test.mse
+      )
+      best_rank <- GetBestRank(cv_data, tol.overfit)
+      if (verbose >= 1) {
+        cat("best rank: ", best_rank, "\n")
+      }
+      cat("\nfitting final model:\n")
+      nmf_model <- run_nmf(A, best_rank, tol, maxit, verbose > 1, L1, L2, threads)
+    } else if (is.null(k)) {
+      # Run automatic rank determination cross-validation
+      nmf_model <- ard_nmf(
+        A = A,
+        k_init = k,
+        k_max = 1e4,
+        k_min = 2,
+        n_replicates = reps,
+        tol = tol,
+        maxit = maxit,
+        verbose = verbose,
+        L1 = L1,
+        L2 = L2,
+        threads = threads,
+        test_density = test.set.density,
+        learning_rate = learning.rate,
+        tol_overfit = tol.overfit,
+        trace_test_mse = trace.test.mse
+      )
+      cv_data <- nmf_model$cv_data
+    } else if (length(k) == 1) {
+      nmf_model <- run_nmf(A, k, tol, maxit, verbose > 1, L1, L2, threads)
+      cv_data <- list()
     } else {
-      nmf_model <- run_nmf(A, k, tol = 1e-5, maxit = 100, verbose = 2)
+      stop("value for 'k' was invalid")
     }
 
     rownames(nmf_model$h) <- colnames(nmf_model$w) <- paste0(reduction.key, 1:nrow(nmf_model$h))
     rownames(nmf_model$w) <- rnames
     colnames(nmf_model$h) <- cnames
 
-    # Assign results to reductions
+    # Assign to reductions using Seurat v5 method
     object[[reduction.name]] <- CreateDimReducObject(
       embeddings = t(nmf_model$h),
       loadings = nmf_model$w,
       assay = assay,
       key = reduction.key,
-      misc = list("cv_data" = nmf_model$cv_data)
+      misc = list("cv_data" = cv_data)
     )
+
     return(object)
   }
 
