@@ -73,9 +73,8 @@ subset_seurat_by_proportions <- function(seurat_object, cell_type_col, subset_si
   report <- proportions %>%
     select(cell_type = .data[[cell_type_col]], original_count, downsampled_count)
 
-  return(list(
-    seurat_subset = seurat_subset,
-    report = report
-  ))
+  print(report)
+
+  return(seurat_subset)
 }
 
