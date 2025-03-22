@@ -1,23 +1,28 @@
-#' Perform GSEA, Clustering, and Visualization with NMF on a Seurat Object
+#' Perform GSEA and Clustering on Seurat Object
 #'
-#' This function runs GSEA using NMF factors, clusters the data, and generates visualizations
-#' including heatmaps, UMAP, and feature plots. It also compares NMF clusters with PCA clusters.
+#' This function performs Gene Set Enrichment Analysis (GSEA), dimensionality reduction,
+#' clustering, and visualization on a Seurat object using specified parameters.
 #'
-#' @param seurat_object A Seurat object with NMF reduction calculated.
-#' @param gsea_category The category for GSEA (e.g., "C7"). Default is "C7".
-#' @param umap_dims The number of dimensions to use for UMAP. Default is 1:30.
-#' @param clustering_resolution The resolution for clustering. Default is 0.5.
-#' @param max_terms_per_factor The maximum number of terms to display per factor in GSEA heatmap. Default is 3.
-#' @return A list containing the updated Seurat object and a ggplot comparing NMF and PCA clusters.
-#' @importFrom Seurat RunGSEA GSEAHeatmap FindNeighbors FindClusters RunUMAP FeaturePlot DimPlot
-#' @importFrom dplyr group_by count mutate slice pull
-#' @importFrom ggplot2 ggplot aes geom_point theme_bw labs scale_color_viridis_c
+#' @param seurat_object A Seurat object to perform analysis on.
+#' @param gsea_category Character. The GSEA category to use for enrichment analysis.
+#' Default is "C7" (immunologic signatures).
+#' @param umap_dims Numeric vector. The dimensions to use for UMAP and clustering. Default is 1:30.
+#' @param clustering_resolution Numeric. The resolution parameter for clustering. Default is 0.5.
+#' @param max_terms_per_factor Numeric. The maximum number of terms to display per factor in the GSEA heatmap. Default is 3.
+#'
+#' @return A Seurat object with updated metadata, clustering, and visualization results.
+#'
 #' @examples
-#' library(Seurat)
-#' library(ggplot2)
-#' seurat_object <- process_and_run_nmf(seurat_object, nmf_rank = 5)
-#' results <- perform_gsea_and_clustering(seurat_object)
-#' results$comparison_plot
+#' # Example usage:
+#' seurat_object <- perform_gsea_and_clustering(
+#'   seurat_object = seurat_obj,
+#'   gsea_category = "C7",
+#'   umap_dims = 1:20,
+#'   clustering_resolution = 0.6,
+#'   max_terms_per_factor = 5
+#' )
+#'
+#' @import Seurat ggplot2 viridis dplyr
 #' @export
 perform_gsea_and_clustering <- function(seurat_object,
                                         gsea_category = "C7",
@@ -28,52 +33,62 @@ perform_gsea_and_clustering <- function(seurat_object,
   seurat_object <- RunGSEA(seurat_object, category = gsea_category, verbose = FALSE)
 
   # Generate GSEA heatmap
-  GSEAHeatmap(seurat_object, reduction = "nmf", max.terms.per.factor = max_terms_per_factor)
+  p<-GSEAHeatmap(seurat_object, reduction = "nmf", max.terms.per.factor = max_terms_per_factor)
+print(p)
 
-  # Find neighbors, clusters, and run UMAP
-  seurat_object <- seurat_object %>%
-    FindNeighbors(dims = umap_dims, reduction = "nmf") %>%
-    FindClusters(resolution = clustering_resolution, verbose = FALSE) %>%
-    RunUMAP(reduction = "nmf", dims = umap_dims, verbose = FALSE)
+# Adjust umap_dims based on available dimensions in "nmf"
+available_dims <- ncol(seurat_object@reductions$nmf@cell.embeddings)
+umap_dims <- umap_dims[umap_dims <= available_dims]
+if (length(umap_dims) == 0) {
+  stop("No valid dimensions available for UMAP.")
+}
+
+# Find neighbors, clusters, and run UMAP
+seurat_object <- seurat_object %>%
+  FindNeighbors(dims = umap_dims, reduction = "nmf") %>%
+  FindClusters(resolution = clustering_resolution, verbose = FALSE) %>%
+  RunUMAP(reduction = "nmf", dims = umap_dims, verbose = FALSE)
 
   # Plot NMF features
-  FeaturePlot(seurat_object, features = paste0("NMF_", 1:6), raster = FALSE)
+  p<-FeaturePlot(seurat_object, features = paste0("NMF_", 1:6), raster = FALSE)
+print(p)
+  # Compare NMF clusters with PCA clusters if cell_type metadata exists
+  if ("cell_type" %in% colnames(seurat_object@meta.data)) {
+    df <- data.frame(
+      "nmf_clusters" = seurat_object@meta.data$seurat_clusters,
+      "pca_clusters" = seurat_object@meta.data$cell_type
+    )
 
-  # Compare NMF clusters with PCA clusters
-  df <- data.frame(
-    "nmf_clusters" = seurat_object@meta.data$seurat_clusters,
-    "pca_clusters" = seurat_object@meta.data$cell_type
-  )
+    df <- df[!is.na(df$pca_clusters), ] %>%
+      group_by(nmf_clusters) %>%
+      count(pca_clusters) %>%
+      mutate(freq = n / sum(n))
 
-  df <- df[!is.na(df$pca_clusters), ]
-  df <- df %>%
-    group_by(nmf_clusters) %>%
-    count(pca_clusters) %>%
-    mutate(freq = n / sum(n))
+    comparison_plot <- ggplot(df, aes(x = nmf_clusters, y = pca_clusters, size = freq, color = n)) +
+      geom_point() +
+      theme_bw() +
+      labs(
+        x = "NMF cluster",
+        y = "PCA cluster",
+        size = "Proportion\nof cluster",
+        color = "Cells in\nNMF cluster"
+      ) +
+      scale_color_viridis_c(option = "D")
+    print(comparison_plot)
 
-  comparison_plot <- ggplot(df, aes(nmf_clusters, pca_clusters, size = freq, color = n)) +
-    geom_point() +
-    theme_bw() +
-    labs(
-      x = "NMF cluster",
-      y = "PCA cluster",
-      size = "Proportion\nof cluster",
-      color = "Cells in\nNMF cluster"
-    ) +
-    scale_color_viridis_c(option = "D")
+    # Rename clusters based on PCA comparison
+    cluster_names <- df %>%
+      slice(which.max(n)) %>%
+      pull(pca_clusters)
 
-  # Rename clusters based on PCA comparison
-  cluster_names <- df %>%
-    slice(which.max(n)) %>%
-    pull(pca_clusters)
+    levels(seurat_object@meta.data$seurat_clusters) <- make.unique(as.vector(cluster_names))
 
-  levels(seurat_object@meta.data$seurat_clusters) <- make.unique(as.vector(cluster_names))
+    # Generate UMAP plot with updated cluster names
+    DimPlot(seurat_object, reduction = "umap", label = TRUE, group.by = "seurat_clusters")
+  } else {
+    message("No 'cell_type' column found in metadata for PCA comparison.")
+  }
 
-  # Generate UMAP plot with updated cluster names
-  DimPlot(
-    seurat_object,
-    reduction = "umap",
-    label = TRUE,
-    group)
-
+  return(seurat_object)
 }
+
