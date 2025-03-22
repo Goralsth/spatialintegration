@@ -21,6 +21,7 @@ library(SpatialIntegration)
 library(stringr)
 library(Seurat)
 library(singlet)
+library(ggplot2)
 ```
 
 
@@ -73,42 +74,68 @@ The commented out lines detail how the NMF embeddings were computed. This takes 
 # ```
 
 
+#how the subset object was made
+
+# ```{r load in nmf embedded data}
+# 
+#  seurat_object <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/seurat_object.rds")
+# Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/Allen_SEA_AD_Atlas.rds")
+# 
+# # Replace NA values in the "subclass_label" column of @meta.data with "NA"
+# Allen_SEA_AD_Atlas@meta.data[["subclass_label"]][is.na(Allen_SEA_AD_Atlas@meta.data[["subclass_label"]])] <- "NotLabled"
+# 
+# ```
+# 
+# 
+# ```{r subset seurat object for upload to data file in package}
+# 
+# seurat_object_sub<-subset_seurat_by_proportions(seurat_object = seurat_object, cell_type_col="segment", 500)
+# allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell_type_col="subclass_label", 6000)
+# 
+# 
+# ```
+# 
+# 
+# 
+# 
+# 
+# ```{r}
+# 
+#  seurat_merge<-merge_seurat_objects(seurat_object = seurat_object_sub, allen_sub)
+# 
+#  #save data to data file
+#  use_data(seurat_merge, compress = "bzip2", overwrite = TRUE)
+# 
+# ```
 
 
 
 
-```{r load in nmf embedded data}
-
- seurat_object <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/seurat_object.rds")
-Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/Allen_SEA_AD_Atlas.rds")
 
 
 
+```{r set lib path and install package}
+#cahnge below libpath to directory with sufficient storage for large packages
+.libPaths(c("/varidata/research/projects/henderson/THOMAS/R/4.4/library", .libPaths()))
+
+install_github("Goralsth/spatialintegration")
+
+library(SpatialIntegration)
 ```
-
-
-
-```{r subset seurat object for upload to data file in package}
-
-seurat_object_sub<-subset_seurat_by_proportions(seurat_object = seurat_object, cell_type_col="segment", 500)
-allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell_type_col="subclass_label", 6000)
-
-
-```
-
-
-
 
 
 ```{r}
 
+#load the data
+data(seurat_merge)
+is(seurat_merge, "Seurat")
 
-seurat_merge<-merge_seurat_objects(seurat_object = seurat_object_sub, allen_sub)
-
-#save data to data file
-use_data(seurat_merge, compress = "bzip2", overwrite = TRUE)
-
+seurat_merge
 ```
+
+
+
+
 
 
 
@@ -119,11 +146,7 @@ seurat_merge<-process_and_run_nmf(seurat_merge, nmf_rank = 15)
 
 ```
 
-```{r}
-p<-RankPlot(seurat_merge)
 
-ggsave(p,"rank_plot_nmfrank15.png")
-```
 
 
 
@@ -150,7 +173,7 @@ plot_nmf_correlation_heatmap(seurat_merge, "cell_type_nmfFactor_corr.png")
 
 ```{r}
 
-FeaturePlot(seurat_merge, features = paste0("NMF_", c(6,15)), raster = FALSE)
+FeaturePlot(seurat_merge, features = paste0("NMF_", c(2,3,7,8,c(12:15))), raster = FALSE)
 
 ```
 
@@ -160,7 +183,7 @@ FeaturePlot(seurat_merge, features = paste0("NMF_", c(6,15)), raster = FALSE)
 
 ```{r}
 plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
-  nmf_factor = 6,
+  nmf_factor = 13,
   output_file = "top20_enriched_nmf6.pdf"
 )
 
@@ -179,7 +202,7 @@ plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
 
 ```{r}
 
-GSEAHeatmap(seurat_merge, reduction = "nmf", max.terms.per.factor = 500)
+GSEAHeatmap(seurat_merge, reduction = "nmf", max.terms.per.factor = 50)
 FeaturePlot(seurat_merge, features = paste0("NMF_", 1:10), raster = FALSE)
 DimPlot(seurat_merge, reduction = "umap", group.by ="segment")
 ```
