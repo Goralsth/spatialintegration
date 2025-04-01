@@ -10,6 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+
+
+
+
+
+
+
 The commented out lines detail how the NMF embeddings were computed. This takes a large amount of compute, so for efficiency the objects have been saved after nmf embedding and can be loaded directly in.
 
 # ```{r load geomx data and create suerat object}
@@ -57,6 +64,8 @@ The commented out lines detail how the NMF embeddings were computed. This takes 
 # saveRDS(seurat_object,"seurat_object.rds")
 # saveRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
 # ```
+
+
 
 ```{r load in nmf embedded data}
 

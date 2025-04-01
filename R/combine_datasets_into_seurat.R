@@ -8,6 +8,12 @@
 #' @return A Seurat object containing combined expression data and metadata.
 #' @importFrom Seurat CreateSeuratObject
 #' @examples
+#' #' @examples
+#' file_paths <- list.files("/path/to/", pattern = "target_data_*.RDS", full.names = TRUE)
+#' if (length(file_paths) > 0) {
+#'   seurat_obj <- combine_datasets_into_seurat(file_paths)
+#' }
+
 #' file_paths <- list(
 #'   "ACA_MOS_MOp_6mpi" = "/path/to/target_data_ACA_MOS_MOp_6mpi.RDS",
 #'   "ACA_MOS_MOp_9mpi" = "/path/to/target_data_ACA_MOS_MOp_9mpi.RDS",

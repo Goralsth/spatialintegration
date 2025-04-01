@@ -18,6 +18,11 @@ This function loads multiple datasets, extracts and normalizes expression data,
 aligns them based on common features and metadata, and combines them into a Seurat object.
 }
 \examples{
+#' @examples
+file_paths <- list.files("/path/to/", pattern = "target_data_*.RDS", full.names = TRUE)
+if (length(file_paths) > 0) {
+  seurat_obj <- combine_datasets_into_seurat(file_paths)
+}
 file_paths <- list(
   "ACA_MOS_MOp_6mpi" = "/path/to/target_data_ACA_MOS_MOp_6mpi.RDS",
   "ACA_MOS_MOp_9mpi" = "/path/to/target_data_ACA_MOS_MOp_9mpi.RDS",
