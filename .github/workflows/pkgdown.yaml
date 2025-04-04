@@ -31,6 +31,13 @@ jobs:
         with:
           use-public-rspm: true
 
+      # ✅ New Step: Install `singlet` from GitHub before dependencies
+      - name: Install custom dependencies
+        run: |
+          install.packages("remotes")
+          remotes::install_github("username/singlet")  # Replace with actual repo
+          install.packages(c("pak", "sessioninfo", "pkgdown"), repos = "https://cran.rstudio.com")
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::pkgdown, local::.
@@ -47,3 +54,5 @@ jobs:
           clean: false
           branch: gh-pages
           folder: docs
+
+
