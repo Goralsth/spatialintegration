@@ -15,7 +15,6 @@ permissions: read-all
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
-    # Only restrict concurrency for non-PR jobs
     concurrency:
       group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
     env:
@@ -31,10 +30,17 @@ jobs:
         with:
           use-public-rspm: true
 
+      # ✅ Explicitly install `singlet` and other dependencies
+      - name: Install custom dependencies
+        run: |
+          Rscript -e 'install.packages("remotes")'
+          Rscript -e 'remotes::install_github("zdebruine/singlet")'  # Replace with correct repo
+          Rscript -e 'install.packages(c("pak", "sessioninfo", "pkgdown"), repos = "https://cran.rstudio.com")'
+
+      # Install dependencies using pak with singlet explicitly installed
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::pkgdown, local::.
-          needs: website
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
@@ -47,3 +53,7 @@ jobs:
           clean: false
           branch: gh-pages
           folder: docs
+
+
+
+
