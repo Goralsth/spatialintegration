@@ -42,86 +42,76 @@ library(devtools)
 
 The commented out lines detail how the NMF embeddings were computed. This takes a large amount of compute, so for efficiency the objects have been saved after nmf embedding and can be loaded directly in.
 
-# ```{r load geomx data and create suerat object}
-# 
-# #define file paths
-# file_paths <- list(
-#   "ACA_MOS_MOp_6mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_6mpi.RDS",
-#   "ACA_MOS_MOp_9mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_9mpi.RDS",
-#   "LAMDA" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_LAMDA.RDS",
-#   "MultiRegion" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_MultiRegion.RDS",
-#   "SNcAmygNew" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_SNcAmygNew.RDS"
-# )
-# 
-# 
-# 
-# #make suerat object
-# seurat_object <- combine_datasets_into_seurat(file_paths)
-# 
-# 
-# ```
-# 
-# 
-# 
-# ```{r get nmf embeddings}
-# seurat_object <- process_and_run_nmf(seurat_object, nmf_rank = 5)
-# RankPlot(seurat_object, detail.level = 2)
-# 
-# ```
-# 
-# 
-# ```{r load reference Allen data}
-# 
-# Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/Reference_MTG_RNAseq_all-nuclei.2022-06-07.rds")
-# 
-# ```
-# 
-# 
-# ```{r run NMF on allen data}
-# Allen_SEA_AD_Atlas <- process_and_run_nmf(Allen_SEA_AD_Atlas, nmf_rank = 5)
-# 
-# ```
-# 
-# 
-# ```{r save objects}
-# saveRDS(seurat_object,"seurat_object.rds")
-# saveRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
-# ```
+```{r load geomx data and create suerat object, eval=FALSE}
+
+#define file paths
+file_paths <- list(
+  "ACA_MOS_MOp_6mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_6mpi.RDS",
+  "ACA_MOS_MOp_9mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_9mpi.RDS",
+  "LAMDA" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_LAMDA.RDS",
+  "MultiRegion" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_MultiRegion.RDS",
+  "SNcAmygNew" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_SNcAmygNew.RDS"
+)
+
+
+
+#make suerat object
+seurat_object <- combine_datasets_into_seurat(file_paths)
+
+
+```
+
+```{r get nmf embeddings, eval=FALSE}
+seurat_object <- process_and_run_nmf(seurat_object, nmf_rank = 5)
+RankPlot(seurat_object, detail.level = 2)
+
+```
+
+```{r load reference Allen data, eval=FALSE}
+
+Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/Reference_MTG_RNAseq_all-nuclei.2022-06-07.rds")
+
+```
+ 
+```{r run NMF on allen data, eval=FALSE}
+Allen_SEA_AD_Atlas <- process_and_run_nmf(Allen_SEA_AD_Atlas, nmf_rank = 5)
+
+```
+
+
+```{r save objects, eval=FALSE}
+saveRDS(seurat_object,"seurat_object.rds")
+saveRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
+```
 
 
 #how the subset object was made
 
-# ```{r load in nmf embedded data}
-# 
-#  seurat_object <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/seurat_object.rds")
-# Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/Allen_SEA_AD_Atlas.rds")
-# 
-# # Replace NA values in the "subclass_label" column of @meta.data with "NA"
-# Allen_SEA_AD_Atlas@meta.data[["subclass_label"]][is.na(Allen_SEA_AD_Atlas@meta.data[["subclass_label"]])] <- "NotLabled"
-# 
-# ```
-# 
-# 
-# ```{r subset seurat object for upload to data file in package}
-# 
-# seurat_object_sub<-subset_seurat_by_proportions(seurat_object = seurat_object, cell_type_col="segment", 500)
-# allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell_type_col="subclass_label", 6000)
-# 
-# 
-# ```
-# 
-# 
-# 
-# 
-# 
-# ```{r}
-# 
-#  seurat_merge<-merge_seurat_objects(seurat_object = seurat_object_sub, allen_sub)
-# 
-#  #save data to data file
-#  use_data(seurat_merge, compress = "bzip2", overwrite = TRUE)
-# 
-# ```
+```{r load in nmf embedded data, eval=FALSE}
+
+ seurat_object <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/seurat_object.rds")
+Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/Allen_SEA_AD_Atlas.rds")
+
+# Replace NA values in the "subclass_label" column of @meta.data with "NA"
+Allen_SEA_AD_Atlas@meta.data[["subclass_label"]][is.na(Allen_SEA_AD_Atlas@meta.data[["subclass_label"]])] <- "NotLabled"
+
+```
+
+```{r subset seurat object for upload to data file in package, eval=FALSE}
+
+seurat_object_sub<-subset_seurat_by_proportions(seurat_object = seurat_object, cell_type_col="segment", 500)
+allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell_type_col="subclass_label", 6000)
+
+```
+
+```{r, eval=FALSE}
+ 
+  seurat_merge<-merge_seurat_objects(seurat_object = seurat_object_sub, allen_sub)
+ 
+  #save data to data file
+  use_data(seurat_merge, compress = "bzip2", overwrite = TRUE)
+ 
+```
 
 
 
@@ -130,8 +120,8 @@ The commented out lines detail how the NMF embeddings were computed. This takes 
 
 
 ```{r set lib path and install package}
-#cahnge below libpath to directory with sufficient storage for large packages
-.libPaths(c("/varidata/research/projects/henderson/THOMAS/R/4.4/library", .libPaths()))
+#cahnge below libpath to directory with sufficient storage for large packages on an HPC environment
+#.libPaths(c("/varidata/research/projects/henderson/THOMAS/R/4.4/library", .libPaths()))
 
 install_github("Goralsth/spatialintegration")
 

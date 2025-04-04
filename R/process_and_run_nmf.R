@@ -9,8 +9,7 @@
 #' @param nmf_reduction_key The prefix for NMF dimensions in the reduction slot. Default is "NMF_".
 #' @param seed The random seed for reproducibility. Default is 16.
 #' @return A processed Seurat object with PCA and NMF results.
-#' @importFrom Seurat NormalizeData ScaleData FindVariableFeatures RunPCA CreateDimReducObject
-#' @importFrom SeuratObject DefaultAssay GetAssayData VariableFeatures
+#' @import Seurat SeuratObject
 #' @examples
 #' library(Seurat)
 #' seurat_object <- CreateSeuratObject(counts = matrix(rnorm(1000), nrow = 10))

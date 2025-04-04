@@ -50,15 +50,14 @@ plot_top20_enriched_pathways <- function(seurat_object,
   # Step 5: Create the ggplot bar chart
   p <- ggplot(combined_df, aes(x = reorder(pathway, nes), y = nes, fill = dataset)) +
     geom_bar(stat = "identity", position = "dodge") +
-    coord_flip() +
     labs(x = "Pathway", y = "Normalized Enrichment Score (NES)",
          title = "Top 20 Enriched Pathways in NMF (Seurat vs Allen)") +
     theme_minimal() +
     theme(
-      axis.text.y = element_text(size = 5),
+      axis.text.y = element_text(size = 10),
       legend.key.size = unit(0.00001, 'cm'),
-      legend.title = element_text(size = 2),
-      legend.text = element_text(size = 2),
+      legend.title = element_text(size = 10),
+      legend.text = element_text(size = 10),
       legend.key.height = unit(0.3, 'cm'),
       legend.key.width = unit(3, 'cm')
     )

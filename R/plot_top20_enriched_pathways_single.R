@@ -66,7 +66,6 @@ plot_top20_enriched_pathways_single <- function(seurat_object,
     geom_point(aes(size = -log10(pval), color = combined_score)) +
     scale_size_continuous(name = "-log10(p-value)") +
     scale_color_gradient(low = "blue", high = "red", name = "Combined Score") +
-    coord_flip() +
     labs(
       x = "Pathway",
       y = "Normalized Enrichment Score (NES)",
@@ -74,10 +73,10 @@ plot_top20_enriched_pathways_single <- function(seurat_object,
     ) +
     theme_minimal() +
     theme(
-      axis.text.x = element_text(size = 2.5, angle = 75, hjust = 1), # Rotates the x-axis text
-      axis.text.y = element_text(size = 6),
-      legend.title = element_text(size = 4),
-      legend.text = element_text(size = 4,)
+      axis.text.x = element_text(size = 10), # Rotates the x-axis text
+      axis.text.y = element_text(size = 10),
+      legend.title = element_text(size = 10),
+      legend.text = element_text(size = 10)
     )
 
   # Step 6: Save the plot as a PDF
