@@ -33,10 +33,11 @@ jobs:
 
       # ✅ New Step: Install `singlet` from GitHub before dependencies
       - name: Install custom dependencies
-        run: |
-          install.packages("remotes")
-          remotes::install_github("username/singlet")  # Replace with actual repo
-          install.packages(c("pak", "sessioninfo", "pkgdown"), repos = "https://cran.rstudio.com")
+  run: |
+    Rscript -e 'install.packages("remotes")'
+    Rscript -e 'remotes::install_github("username/singlet")'  # Replace with actual repo
+    Rscript -e 'install.packages(c("pak", "sessioninfo", "pkgdown"), repos = "https://cran.rstudio.com")'
+
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
