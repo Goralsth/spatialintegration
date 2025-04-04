@@ -1,8 +1,14 @@
 url: https://goralsth.github.io/spatialintegration/
 template:
   bootstrap: 5
-      - name: Install dependencies
-        run: |
-          Rscript -e 'install.packages("remotes")'
-          Rscript -e 'remotes::install_github("zdebruine/singlet")'
+- name: Install custom dependencies
+  run: |
+    install.packages("remotes")
+    remotes::install_github("username/singlet")  # Replace with correct repo
+
+- name: Install dependencies
+  run: |
+    Rscript -e 'install.packages("pak", repos = "https://cran.rstudio.com")'
+    Rscript -e 'pak::lockfile_create()'
+
 
