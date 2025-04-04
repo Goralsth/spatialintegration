@@ -1,4 +1,8 @@
 url: https://goralsth.github.io/spatialintegration/
 template:
   bootstrap: 5
+      - name: Install dependencies
+        run: |
+          Rscript -e 'install.packages("remotes")'
+          Rscript -e 'remotes::install_github("zdebruine/singlet")'
 
