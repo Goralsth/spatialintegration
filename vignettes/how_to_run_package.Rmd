@@ -124,7 +124,7 @@ library(devtools)
 install_github("Goralsth/spatialintegration")
 
 library(SpatialIntegration)
-library(Seurat)
+
 ```
 
 
