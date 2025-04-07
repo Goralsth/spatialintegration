@@ -21,15 +21,28 @@ process_and_run_nmf <- function(seurat_object,
                                 nmf_reduction_name = "nmf",
                                 nmf_reduction_key = "NMF_",
                                 seed = 16) {
+
   # Normalize, scale, and perform PCA
   #seurat_object <- NormalizeData(seurat_object)
-  seurat_object@assays$RNA$data<-seurat_object@assays$RNA$counts
+  seurat_object@assays$RNA$data <- seurat_object@assays$RNA$counts
   seurat_object <- ScaleData(seurat_object)
   seurat_object <- FindVariableFeatures(seurat_object)
   seurat_object <- Seurat::RunPCA(seurat_object)
 
+  # --- SCALE TO EQUAL CONTRIBUTION OF TRANSCRIPTS BETWEEN DATASETS ---
+  geo_ind <- is.na(seurat_object@meta.data[["specimen_name"]])
+  geo_sum <- sum(seurat_object@assays[["RNA"]]@layers[["counts"]][, geo_ind])
+  allen_sum <- sum(seurat_object@assays[["RNA"]]@layers[["counts"]][, !geo_ind])
+  scale_factor_allen <- geo_sum / allen_sum
+
+  counts <- seurat_object@assays[["RNA"]]@layers[["counts"]]
+  counts_scaled <- counts
+  counts_scaled[, !geo_ind] <- counts_scaled[, !geo_ind] * scale_factor_allen
+  seurat_object@assays[["RNA"]]@layers[["scaled_counts"]] <- counts_scaled
+  # ---------------------------------------------------------------------
+
   # Assign data slot to "layers"
-  seurat_object@assays[["RNA"]]@layers[["data"]] <- seurat_object@assays[["RNA"]]@layers[["counts"]]
+  seurat_object@assays[["RNA"]]@layers[["data"]] <- seurat_object@assays[["RNA"]]@layers[["scaled_counts"]]
 
   RunNMF.Seurat <- function(object,
                             split.by = NULL,
@@ -65,7 +78,6 @@ process_and_run_nmf <- function(seurat_object,
       if (features[[1]] == "var.features") {
         A <- A[VariableFeatures(object, assay = assay), ]
       } else if (is.integer(features) || is.character(features)) {
-        # Array of indices or rownames
         A <- A[features, ]
       } else {
         stop("'features' vector was invalid.")
@@ -80,18 +92,15 @@ process_and_run_nmf <- function(seurat_object,
       if (any(sapply(split.by, is.na))) {
         stop("'split.by' cannot contain NA values")
       }
-      # Force A to clone itself by doing an in-place operation
       A@x <- A@x + 1
       A@x <- A@x - 1
-
-      # Apply weighting function
       A <- weight_by_split(A, split.by, length(unique(split.by)))
     }
+
     At <- Matrix::t(A)
     seed.use <- abs(.Random.seed[[3]])
 
     if (!is.null(k) && length(k) > 1) {
-      # Run cross-validation at specified ranks
       cv_data <- cross_validate_nmf(
         A = A,
         ranks = k,
@@ -113,7 +122,6 @@ process_and_run_nmf <- function(seurat_object,
       cat("\nfitting final model:\n")
       nmf_model <- run_nmf(A, best_rank, tol, maxit, verbose > 1, L1, L2, threads)
     } else if (is.null(k)) {
-      # Run automatic rank determination cross-validation
       nmf_model <- ard_nmf(
         A = A,
         k_init = k,
@@ -143,7 +151,6 @@ process_and_run_nmf <- function(seurat_object,
     rownames(nmf_model$w) <- rnames
     colnames(nmf_model$h) <- cnames
 
-    # Assign to reductions using Seurat v5 method
     object[[reduction.name]] <- CreateDimReducObject(
       embeddings = t(nmf_model$h),
       loadings = nmf_model$w,
@@ -155,7 +162,6 @@ process_and_run_nmf <- function(seurat_object,
     return(object)
   }
 
-  # Set seed and run NMF
   set.seed(seed)
   seurat_object <- RunNMF.Seurat(
     seurat_object,
@@ -164,6 +170,5 @@ process_and_run_nmf <- function(seurat_object,
     reduction.key = nmf_reduction_key
   )
 
-  # Return processed Seurat object
   return(seurat_object)
 }
