@@ -64,20 +64,28 @@ plot_top20_enriched_pathways_single <- function(seurat_object,
   # Step 5: Create the ggplot dot plot
   p <- ggplot(top20_pathways, aes(y = reorder(pathway, combined_score), x = nes)) +
     geom_point(aes(size = -log10(pval), color = combined_score)) +
-    scale_size_continuous(name = "-log10(p-value)") +
-    scale_color_gradient(low = "blue", high = "red", name = "Combined Score") +
+    scale_size_continuous(
+      name = "-log10(p-value)",  # Legend title for size
+      range = c(2, 10)          # Adjust point size range as desired
+    ) +
+    scale_color_gradient(
+      low = "blue",
+      high = "red",
+      name = "Combined Score"
+    ) +
     labs(
-      x = "Pathway",
-      y = "Normalized Enrichment Score (NES)",
+      x = "Normalized Enrichment Score (NES)",  # Swap x and y labels if necessary
+      y = "Pathway",
       title = paste("Top 20 Enriched Pathways in NMF (Factor", nmf_factor, ")")
     ) +
     theme_minimal() +
     theme(
-      axis.text.x = element_text(size = 10), # Rotates the x-axis text
+      axis.text.x = element_text(size = 10),  # Customize axis text
       axis.text.y = element_text(size = 10),
       legend.title = element_text(size = 10),
       legend.text = element_text(size = 10)
     )
+
 
   # Step 6: Save the plot as a PDF
   ggsave(output_file, p, width = 12, height = 8, units = "cm")
