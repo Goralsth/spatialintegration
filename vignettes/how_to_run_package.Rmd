@@ -121,7 +121,7 @@ library(devtools)
 #cahnge below libpath to directory with sufficient storage for large packages on an HPC environment
 #.libPaths(c("/varidata/research/projects/henderson/THOMAS/R/4.4/library", .libPaths()))
 
-install_github("Goralsth/spatialintegration")
+install_github("Goralsth/spatialintegration", build_vignettes = TRUE)
 
 library(SpatialIntegration)
 
