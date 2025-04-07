@@ -30,14 +30,7 @@ knitr::opts_chunk$set(
 
 
 
-```{r setup}
-library(SpatialIntegration)
-library(stringr)
-library(Seurat)
-library(singlet)
-library(ggplot2)
-library(devtools)
-```
+
 
 
 The commented out lines detail how the NMF embeddings were computed. This takes a large amount of compute, so for efficiency the objects have been saved after nmf embedding and can be loaded directly in.
@@ -116,7 +109,12 @@ allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell
 
 
 
+Load in devtools to install package
+```{r}
 
+library(devtools)
+
+```
 
 
 ```{r set lib path and install package}
@@ -126,6 +124,7 @@ allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell
 install_github("Goralsth/spatialintegration")
 
 library(SpatialIntegration)
+library(Seurat)
 ```
 
 
@@ -133,6 +132,10 @@ library(SpatialIntegration)
 
 #load the data
 data(seurat_merge)
+
+```
+
+```{r}
 is(seurat_merge, "Seurat")
 
 seurat_merge
@@ -140,8 +143,19 @@ seurat_merge
 
 
 
+Find contribution to overall dataset to avoid NMF fitting to only 1 data set
+```{r}
+#get indiceds of geomx data
+geo_ind<-is.na(seurat_merge@meta.data[["specimen_name"]])
 
+#get sum of geomx data
+sum(seurat_merge@assays[["RNA"]]@layers[["counts"]][geo_ind])
+#get sum of allen data
+sum(seurat_merge@assays[["RNA"]]@layers[["counts"]][-geo_ind])
 
+```
+
+The process and run nmf function will do the rescaling for us (allend is shrunk to scale to geomx)
 
 
 

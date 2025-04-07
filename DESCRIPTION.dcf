@@ -8,7 +8,7 @@ Description: This package seeks to integrate spatial and single cell data and ex
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports: 
+Imports:
     ggplot2,
     Seurat,
     singlet,
@@ -16,14 +16,18 @@ Imports:
     singlet,
     stringr
 RoxygenNote: 7.3.2
-Suggests: 
+Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
     devtools
 VignetteBuilder: knitr
-Depends: 
-    R (>= 3.5)
+Depends:
+    R (>= 3.5),
+    Seurat,
+    pheatmap,
+    singlet,
+    ggplot2,
 Config/testthat/edition: 3
 LazyDataCompression: gzip
 URL: https://goralsth.github.io/spatialintegration/
