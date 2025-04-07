@@ -25,7 +25,7 @@ process_and_run_nmf <- function(seurat_object,
   # Normalize, scale, and perform PCA
   #seurat_object <- NormalizeData(seurat_object)
   seurat_object@assays$RNA$data <- seurat_object@assays$RNA$counts
-  seurat_object <- ScaleData(seurat_object)
+  seurat_object <-Seurat::ScaleData(seurat_object)
   seurat_object <- FindVariableFeatures(seurat_object)
   seurat_object <- Seurat::RunPCA(seurat_object)
 
