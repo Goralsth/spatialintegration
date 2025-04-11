@@ -47,8 +47,8 @@ seurat_object <- process_and_run_nmf(seurat_object, nmf_rank = 5)
 
 # Plot the embeddings of NMF rank 2 
 RankPlot(seurat_object, detail.level = 2)
-
 ```
+
 
 ```{r load reference Allen data, eval=FALSE}
 
@@ -56,9 +56,10 @@ Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/Mach
 
 ```
  
+ 
+ 
 ```{r run NMF on allen data, eval=FALSE}
 Allen_SEA_AD_Atlas <- process_and_run_nmf(Allen_SEA_AD_Atlas, nmf_rank = 5)
-
 ```
 
 
@@ -68,8 +69,7 @@ saveRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
 ```
 
 
-#how the subset object was made
-
+how the subset object was made
 ```{r load in nmf embedded data, eval=FALSE}
 
  seurat_object <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/seurat_object.rds")
@@ -151,6 +151,8 @@ The process and run nmf function will do the rescaling for us (allen is shrunk t
 library(singlet)
 ```
 
+
+Run NMF on the merged dataset
 ```{r}
 
 seurat_merge<-process_and_run_nmf(seurat_merge, nmf_rank = 15)
@@ -166,7 +168,7 @@ seurat_merge<-perform_gsea_and_clustering(seurat_merge)
 
 ```
 
-
+View plots
 ```{r}
 #View umap clusters
 print(DimPlot(seurat_merge, reduction = "umap"))
@@ -179,23 +181,22 @@ print(DimPlot(seurat_merge, reduction = "umap", group.by ="subclass_label"))
 print(DimPlot(seurat_merge, reduction = "umap", group.by ="class_label"))
 ```
 
-
+View each cell type label and spatial annotations correlation to each nmf factor
 ```{r}
-#View each cell type label and spatial annotations correlation to each nmf factor
 plot_nmf_correlation_heatmap(seurat_merge, "cell_type_nmfFactor_corr.png")
 ```
 
+
+View nmf loadings on umaps
 ```{r}
-#View nmf loadings on umaps
 FeaturePlot(seurat_merge, features = paste0("NMF_", c(2,3,7,8,c(12:15))), raster = FALSE)
 
 ```
 
 
 
+Get top20 genesets that load with NeuN related factor
 ```{r}
-
-#get genesets that load with NeuN related factor
 plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
   nmf_factor = 13,
   output_file = "top20_enriched_nmf6.pdf"
@@ -211,7 +212,7 @@ plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
 ```
 
 
-
+Plot GSEA heatmanp and NMF features
 ```{r plot GSEA and NMF features}
 
 GSEAHeatmap(seurat_merge, reduction = "nmf", max.terms.per.factor = 50)
