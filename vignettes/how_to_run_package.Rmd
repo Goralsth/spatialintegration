@@ -11,108 +11,6 @@ vignette: >
 Parkinson’s disease (PD) is a neurodegenerative disease characterized by intraneuronal ɑ-synuclein aggregates known as Lewy pathology. Using GeoMx bulk spatial transcriptomics, we identified a molecular signature, Lewy-Associated Molecular Dysfunction from Aggregates (LAMDA), consisting of downregulated DNA repair, mitochondrial, and synaptic pathways in cortex of post-mortem PD and mouse model brains. Previous single-nucleus (sn) transcriptomics studies in PD lacked resolution on aggregate status, making it unclear how sn alterations align with the LAMDA signature. This package enables integration of bulk spatial and sn transcriptomics data and apply non-negative matrix factorization to learn shared features across data types in a low-dimensional space (aim 1) and transfer “spatial” labels from the bulk to sn data by machine learning (aim 2).
 
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
-
-
-The commented out lines detail how the NMF embeddings were computed. This takes a large amount of compute, so for efficiency the objects have been saved after nmf embedding and can be loaded directly in.
-
-```{r load geomx data and create suerat object, eval=FALSE}
-
-#define file paths
-file_paths <- list(
-  "ACA_MOS_MOp_6mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_6mpi.RDS",
-  "ACA_MOS_MOp_9mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_9mpi.RDS",
-  "LAMDA" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_LAMDA.RDS",
-  "MultiRegion" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_MultiRegion.RDS",
-  "SNcAmygNew" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_SNcAmygNew.RDS"
-)
-
-
-
-# Create a Seurat object by combining multiple datasets
-seurat_object <- combine_datasets_into_seurat(file_paths)
-
-
-```
-
-```{r get nmf embeddings, eval=FALSE}
-# NMF (Non-negative Matrix Factorization) is used for dimensionality reduction
-# Setting the rank to 5 means choosing to reduce the data dimensions into 5 factors/components, which will each capture a distinct pattern within the data to explain variability in the original dataset
-seurat_object <- process_and_run_nmf(seurat_object, nmf_rank = 5)
-
-# Plot the embeddings of NMF rank 2 
-RankPlot(seurat_object, detail.level = 2)
-```
-
-
-```{r load reference Allen data, eval=FALSE}
-
-Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/Reference_MTG_RNAseq_all-nuclei.2022-06-07.rds")
-
-```
- 
- 
- 
-```{r run NMF on allen data, eval=FALSE}
-Allen_SEA_AD_Atlas <- process_and_run_nmf(Allen_SEA_AD_Atlas, nmf_rank = 5)
-```
-
-
-```{r save objects, eval=FALSE}
-saveRDS(seurat_object,"seurat_object.rds")
-saveRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
-```
-
-
-how the subset object was made
-```{r load in nmf embedded data, eval=FALSE}
-
- seurat_object <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/seurat_object.rds")
-Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/Allen_SEA_AD_Atlas.rds")
-
-# Replace NA values in the "subclass_label" column of @meta.data with "NA"
-Allen_SEA_AD_Atlas@meta.data[["subclass_label"]][is.na(Allen_SEA_AD_Atlas@meta.data[["subclass_label"]])] <- "NotLabled"
-
-```
-
-```{r subset seurat object for upload to data file in package, eval=FALSE}
-#Subset the data by proportions to upload a smaller datafile to the package
-seurat_object_sub<-subset_seurat_by_proportions(seurat_object = seurat_object, cell_type_col="segment", 500)
-allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell_type_col="subclass_label", 6000)
-
-```
-
-```{r, eval=FALSE}
- # merge the subset data for allen and seurat into one dataset
-  seurat_merge<-merge_seurat_objects(seurat_object = seurat_object_sub, allen_sub)
- 
-  #save data to data file
-  use_data(seurat_merge, compress = "bzip2", overwrite = TRUE)
- 
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Load in devtools to install package
 ```{r}
@@ -127,7 +25,7 @@ library(devtools)
 #cahnge below libpath to directory with sufficient storage for large packages on an HPC environment
 #.libPaths(c("/varidata/research/projects/henderson/THOMAS/R/4.4/library", .libPaths()))
 
-install_github("Goralsth/spatialintegration", build_vignettes = TRUE)
+install_github("Goralsth/spatialintegration")
 
 library(SpatialIntegration)
 
@@ -181,7 +79,7 @@ seurat_merge<-process_and_run_nmf(seurat_merge, nmf_rank = 15)
 
 
 perform_gsea_and_clustering computes umap and pca clusters, runs nmf. makes comparisons of pca and nmf clusters and runs GSEA for each nmf factor
-```{r}
+```{r, fig.dim = c(8, 10)}
 
 
 seurat_merge<-perform_gsea_and_clustering(seurat_merge)
@@ -190,7 +88,7 @@ seurat_merge<-perform_gsea_and_clustering(seurat_merge)
 ```
 
 View plots. 
-```{r}
+```{r,fig.dim = c(8, 10) }
 #View umap clusters
 print(DimPlot(seurat_merge, reduction = "umap"))
 #View GeoMx segment lables
@@ -203,13 +101,13 @@ print(DimPlot(seurat_merge, reduction = "umap", group.by ="class_label"))
 ```
 
 View each cell type label and spatial annotations correlation to each nmf factor. One hot encodes each cell type then correleates them with nmf factors
-```{r}
+```{r, fig.dim = c(8, 10)}
 plot_nmf_correlation_heatmap(seurat_merge, "cell_type_nmfFactor_corr.png")
 ```
 
 
 View nmf loadings on umaps
-```{r}
+```{r, fig.dim = c(8, 10)}
 FeaturePlot(seurat_merge, features = paste0("NMF_", c(2,3,7,8,c(12:15))), raster = FALSE)
 
 ```
@@ -217,7 +115,7 @@ FeaturePlot(seurat_merge, features = paste0("NMF_", c(2,3,7,8,c(12:15))), raster
 
 
 Get top20 genesets that load with NeuN related factor    
-```{r}
+```{r,fig.dim = c(8, 20) }
 plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
   nmf_factor = 13,
   output_file = "top20_enriched_nmf6.pdf"
@@ -234,14 +132,17 @@ plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
 
 
 Plot GSEA heatmanp and NMF features
-```{r plot GSEA and NMF features}
+```{r plot GSEA and NMF features,fig.dim = c(8, 10)}
 
 GSEAHeatmap(seurat_merge, reduction = "nmf", max.terms.per.factor = 50)
-FeaturePlot(seurat_merge, features = paste0("NMF_", 1:10), raster = FALSE)
+
 DimPlot(seurat_merge, reduction = "umap", group.by ="segment")
 ```
 
 
+```{r plot GSEA NMF features,fig.dim = c(8, 15)}
+FeaturePlot(seurat_merge, features = paste0("NMF_", 1:10), raster = FALSE)
+```
 
 
 

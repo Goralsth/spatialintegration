@@ -88,7 +88,7 @@ plot_top20_enriched_pathways_single <- function(seurat_object,
 
 
   # Step 6: Save the plot as a PDF
-  ggsave(output_file, p, width = 12, height = 8, units = "cm")
+  ggsave(output_file, p, width = 10, height = 8, units = "cm")
 
   return(p)
 }
