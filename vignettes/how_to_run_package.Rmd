@@ -8,17 +8,7 @@ vignette: >
 ---
 
 
-Parkinson’s disease (PD) is a progressive neurodegenerative disease characterized by the presence of intraneuronal aggregates of misfolded ɑ-synuclein, called Lewy pathology. Using GeoMx, a bulk spatial transcriptomics technology, we recently identified a molecular signature associated with cortical Lewy pathology, Lewy Associated Molecular dysfunction from aggregates (LAMDA) that is conserved across PD patient brains and mouse models of PD1. This signature denotes alterations in DNA repair, mitochondrial, synaptic pathways etc. These changes were resolved within the same brain utilizing bulk spatial transcriptomics technology (GeoMx). Preceding transcriptomic profiling of Parkinson’s disease involved comparing transcriptomic profiles of healthy with PD (or more broadly Lewy body diseases) brains, without resolution on aggregate status but at bulk and single-cell/nuclei levels (Sn)2–5. The degree to which these alterations overlapped with the LAMDA signature is unclear. In our preliminary data, we utilized previously published Sn data comparing healthy controls to Lewy body diseased (LBD) brains2 to compare to our spatial data of neurons from healthy controls, non-aggregate (Agg-) bearing neurons and aggregate bearing (Agg+) neurons from PD brains. We found that differences between healthy neurons (healthy) to Agg- bearing neurons were positively correlated with the differences between healthy to LBD brains (r = 0.20 , p = 4.04e−73). In addition, both the differences between Agg+ and healthy (r=-0.07,p<0.001), and the Agg+ and Agg- neurons (r=-0.17,p<0.001) were negatively correlated with the differences between healthy to LBD brains. Though weakly correlated, this data highlights alterations induced by Lewy pathology were not understood prior to the LAMDA signature.
-The LAMDA signature, however, is derived from bulk-spatial transcriptomics data and current single-cell spatial technologies lack the depth necessary to probe molecular alterations at a genome wide level. Eigengenes have been utilized in to attempt label transfer in similar data previously but lack evidence for diagonal integration and arbitrarily transfer labels, limiting the scope of downstream analysis6. Presently, there is not a method that combines diagonal integration and transfer of the “spatial” label to the unlabeled Sn data. Our approach aims to resolve technical limitations that prevent labeled single-nuclei data for aggregate status. We hypothesize that non-negative matrix factorization and/or the modified causal transformer decoder foundation model scGPT6 can learn shared molecular alterations in lower dimensional integrated space between these two data types and successfully transfer “spatial” labels across the diagonal to the Sn data. 
-
-
-1.	Goralski, T.M., Meyerdirk, L., Breton, L., Brasseur, L., Kurgat, K., DeWeerd, D., Turner, L., Becker, K., Adams, M., Newhouse, D.J., et al. (2024). Spatial transcriptomics reveals molecular dysfunction associated with cortical Lewy pathology. Nat Commun 15, 2642. https://doi.org/10.1038/s41467-024-47027-8.
-2.	Feleke, R., Reynolds, R.H., Smith, A.M., Tilley, B., Taliun, S.A.G., Hardy, J., Matthews, P.M., Gentleman, S., Owen, D.R., Johnson, M.R., et al. (2021). Cross-platform transcriptional profiling identifies common and distinct molecular pathologies in Lewy body diseases. Acta Neuropathol 142, 449–474. https://doi.org/10.1007/s00401-021-02343-x.
-3.	van den Hurk, M., Lau, S., Marchetto, M.C., Mertens, J., Stern, S., Corti, O., Brice, A., Winner, B., Winkler, J., Gage, F.H., et al. (2022). Druggable transcriptomic pathways revealed in Parkinson’s patient-derived midbrain neurons. npj Parkinsons Dis. 8, 1–18. https://doi.org/10.1038/s41531-022-00400-0.
-4.	Common gene expression signatures in Parkinson’s disease are driven by changes in cell composition - PubMed https://pubmed.ncbi.nlm.nih.gov/32317022/.
-5.	Fernandes, H.J.R., Patikas, N., Foskolou, S., Field, S.F., Park, J.-E., Byrne, M.L., Bassett, A.R., and Metzakopian, E. (2020). Single-Cell Transcriptomics of Parkinson’s Disease Human In Vitro Models Reveals Dopamine Neuron-Specific Stress Responses. Cell Rep 33, 108263. https://doi.org/10.1016/j.celrep.2020.108263.
-6.	scGPT: toward building a foundation model for single-cell multi-omics using generative AI - PubMed https://pubmed.ncbi.nlm.nih.gov/38409223/.
-
+Parkinson’s disease (PD) is a neurodegenerative disease characterized by intraneuronal ɑ-synuclein aggregates known as Lewy pathology. Using GeoMx bulk spatial transcriptomics, we identified a molecular signature, Lewy-Associated Molecular Dysfunction from Aggregates (LAMDA), consisting of downregulated DNA repair, mitochondrial, and synaptic pathways in cortex of post-mortem PD and mouse model brains. Previous single-nucleus (sn) transcriptomics studies in PD lacked resolution on aggregate status, making it unclear how sn alterations align with the LAMDA signature. This package enables integration of bulk spatial and sn transcriptomics data and apply non-negative matrix factorization to learn shared features across data types in a low-dimensional space (aim 1) and transfer “spatial” labels from the bulk to sn data by machine learning (aim 2).
 
 
 ```{r, include = FALSE}
@@ -27,10 +17,6 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
-
-
-
-
 
 
 The commented out lines detail how the NMF embeddings were computed. This takes a large amount of compute, so for efficiency the objects have been saved after nmf embedding and can be loaded directly in.
@@ -48,14 +34,18 @@ file_paths <- list(
 
 
 
-#make suerat object
+# Create a Seurat object by combining multiple datasets
 seurat_object <- combine_datasets_into_seurat(file_paths)
 
 
 ```
 
 ```{r get nmf embeddings, eval=FALSE}
+# NMF (Non-negative Matrix Factorization) is used for dimensionality reduction
+# Setting the rank to 5 means choosing to reduce the data dimensions into 5 factors/components, which will each capture a distinct pattern within the data to explain variability in the original dataset
 seurat_object <- process_and_run_nmf(seurat_object, nmf_rank = 5)
+
+# Plot the embeddings of NMF rank 2 
 RankPlot(seurat_object, detail.level = 2)
 
 ```
@@ -91,22 +81,20 @@ Allen_SEA_AD_Atlas@meta.data[["subclass_label"]][is.na(Allen_SEA_AD_Atlas@meta.d
 ```
 
 ```{r subset seurat object for upload to data file in package, eval=FALSE}
-
+#Subset the data by proportions to upload a smaller datafile to the package
 seurat_object_sub<-subset_seurat_by_proportions(seurat_object = seurat_object, cell_type_col="segment", 500)
 allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell_type_col="subclass_label", 6000)
 
 ```
 
 ```{r, eval=FALSE}
- 
+ # merge the subset data for allen and seurat into one dataset
   seurat_merge<-merge_seurat_objects(seurat_object = seurat_object_sub, allen_sub)
  
   #save data to data file
   use_data(seurat_merge, compress = "bzip2", overwrite = TRUE)
  
 ```
-
-
 
 
 Load in devtools to install package
@@ -142,7 +130,6 @@ seurat_merge
 ```
 
 
-
 Find contribution to overall dataset to avoid NMF fitting to only 1 data set
 ```{r}
 #get indiceds of geomx data
@@ -169,9 +156,6 @@ library(singlet)
 seurat_merge<-process_and_run_nmf(seurat_merge, nmf_rank = 15)
 
 ```
-
-
-
 
 
 ```{r}
@@ -209,8 +193,6 @@ FeaturePlot(seurat_merge, features = paste0("NMF_", c(2,3,7,8,c(12:15))), raster
 
 
 
-
-
 ```{r}
 
 #get genesets that load with NeuN related factor
@@ -230,9 +212,7 @@ plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
 
 
 
-
-
-```{r}
+```{r plot GSEA and NMF features}
 
 GSEAHeatmap(seurat_merge, reduction = "nmf", max.terms.per.factor = 50)
 FeaturePlot(seurat_merge, features = paste0("NMF_", 1:10), raster = FALSE)
@@ -241,6 +221,26 @@ DimPlot(seurat_merge, reduction = "umap", group.by ="segment")
 
 
 
+```{r retrieve references}
+# Install RefManageR if not already installed
+if (!requireNamespace("RefManageR", quietly = TRUE)) {
+  install.packages("RefManageR")
+}
+
+# Load the package
+library(RefManageR)
+
+# Set the path to your .bib file (adjust if you moved it)
+bib_file <- "/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/references.bib"  
+file.exists(bib_file)
+
+# Read the BibTeX file
+bib_entries <- ReadBib(bib_file)
+
+# Print the loaded references
+print(bib_entries)
+
+```
 
 
 
