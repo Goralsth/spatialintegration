@@ -66,7 +66,7 @@ plot_top20_enriched_pathways_single <- function(seurat_object,
     geom_point(aes(size = -log10(pval), color = combined_score)) +
     scale_size_continuous(
       name = "-log10(p-value)",  # Legend title for size
-      range = c(2, 10)          # Adjust point size range as desired
+      range = c(0.1, 2)          # Adjust point size range as desired
     ) +
     scale_color_gradient(
       low = "blue",
