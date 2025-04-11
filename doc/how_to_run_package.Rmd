@@ -1,0 +1,253 @@
+---
+title: "how_to_run_package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{how_to_run_package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+Parkinson’s disease (PD) is a progressive neurodegenerative disease characterized by the presence of intraneuronal aggregates of misfolded ɑ-synuclein, called Lewy pathology. Using GeoMx, a bulk spatial transcriptomics technology, we recently identified a molecular signature associated with cortical Lewy pathology, Lewy Associated Molecular dysfunction from aggregates (LAMDA) that is conserved across PD patient brains and mouse models of PD1. This signature denotes alterations in DNA repair, mitochondrial, synaptic pathways etc. These changes were resolved within the same brain utilizing bulk spatial transcriptomics technology (GeoMx). Preceding transcriptomic profiling of Parkinson’s disease involved comparing transcriptomic profiles of healthy with PD (or more broadly Lewy body diseases) brains, without resolution on aggregate status but at bulk and single-cell/nuclei levels (Sn)2–5. The degree to which these alterations overlapped with the LAMDA signature is unclear. In our preliminary data, we utilized previously published Sn data comparing healthy controls to Lewy body diseased (LBD) brains2 to compare to our spatial data of neurons from healthy controls, non-aggregate (Agg-) bearing neurons and aggregate bearing (Agg+) neurons from PD brains. We found that differences between healthy neurons (healthy) to Agg- bearing neurons were positively correlated with the differences between healthy to LBD brains (r = 0.20 , p = 4.04e−73). In addition, both the differences between Agg+ and healthy (r=-0.07,p<0.001), and the Agg+ and Agg- neurons (r=-0.17,p<0.001) were negatively correlated with the differences between healthy to LBD brains. Though weakly correlated, this data highlights alterations induced by Lewy pathology were not understood prior to the LAMDA signature.
+The LAMDA signature, however, is derived from bulk-spatial transcriptomics data and current single-cell spatial technologies lack the depth necessary to probe molecular alterations at a genome wide level. Eigengenes have been utilized in to attempt label transfer in similar data previously but lack evidence for diagonal integration and arbitrarily transfer labels, limiting the scope of downstream analysis6. Presently, there is not a method that combines diagonal integration and transfer of the “spatial” label to the unlabeled Sn data. Our approach aims to resolve technical limitations that prevent labeled single-nuclei data for aggregate status. We hypothesize that non-negative matrix factorization and/or the modified causal transformer decoder foundation model scGPT6 can learn shared molecular alterations in lower dimensional integrated space between these two data types and successfully transfer “spatial” labels across the diagonal to the Sn data. 
+
+
+1.	Goralski, T.M., Meyerdirk, L., Breton, L., Brasseur, L., Kurgat, K., DeWeerd, D., Turner, L., Becker, K., Adams, M., Newhouse, D.J., et al. (2024). Spatial transcriptomics reveals molecular dysfunction associated with cortical Lewy pathology. Nat Commun 15, 2642. https://doi.org/10.1038/s41467-024-47027-8.
+2.	Feleke, R., Reynolds, R.H., Smith, A.M., Tilley, B., Taliun, S.A.G., Hardy, J., Matthews, P.M., Gentleman, S., Owen, D.R., Johnson, M.R., et al. (2021). Cross-platform transcriptional profiling identifies common and distinct molecular pathologies in Lewy body diseases. Acta Neuropathol 142, 449–474. https://doi.org/10.1007/s00401-021-02343-x.
+3.	van den Hurk, M., Lau, S., Marchetto, M.C., Mertens, J., Stern, S., Corti, O., Brice, A., Winner, B., Winkler, J., Gage, F.H., et al. (2022). Druggable transcriptomic pathways revealed in Parkinson’s patient-derived midbrain neurons. npj Parkinsons Dis. 8, 1–18. https://doi.org/10.1038/s41531-022-00400-0.
+4.	Common gene expression signatures in Parkinson’s disease are driven by changes in cell composition - PubMed https://pubmed.ncbi.nlm.nih.gov/32317022/.
+5.	Fernandes, H.J.R., Patikas, N., Foskolou, S., Field, S.F., Park, J.-E., Byrne, M.L., Bassett, A.R., and Metzakopian, E. (2020). Single-Cell Transcriptomics of Parkinson’s Disease Human In Vitro Models Reveals Dopamine Neuron-Specific Stress Responses. Cell Rep 33, 108263. https://doi.org/10.1016/j.celrep.2020.108263.
+6.	scGPT: toward building a foundation model for single-cell multi-omics using generative AI - PubMed https://pubmed.ncbi.nlm.nih.gov/38409223/.
+
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+
+
+
+
+The commented out lines detail how the NMF embeddings were computed. This takes a large amount of compute, so for efficiency the objects have been saved after nmf embedding and can be loaded directly in.
+
+```{r load geomx data and create suerat object, eval=FALSE}
+
+#define file paths
+file_paths <- list(
+  "ACA_MOS_MOp_6mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_6mpi.RDS",
+  "ACA_MOS_MOp_9mpi" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_ACA_MOS_MOp_9mpi.RDS",
+  "LAMDA" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_LAMDA.RDS",
+  "MultiRegion" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_MultiRegion.RDS",
+  "SNcAmygNew" = "/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/target_data_SNcAmygNew.RDS"
+)
+
+
+
+#make suerat object
+seurat_object <- combine_datasets_into_seurat(file_paths)
+
+
+```
+
+```{r get nmf embeddings, eval=FALSE}
+seurat_object <- process_and_run_nmf(seurat_object, nmf_rank = 5)
+RankPlot(seurat_object, detail.level = 2)
+
+```
+
+```{r load reference Allen data, eval=FALSE}
+
+Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/Machine_Learning_For_Bioinformatics_Project/Reference_MTG_RNAseq_all-nuclei.2022-06-07.rds")
+
+```
+ 
+```{r run NMF on allen data, eval=FALSE}
+Allen_SEA_AD_Atlas <- process_and_run_nmf(Allen_SEA_AD_Atlas, nmf_rank = 5)
+
+```
+
+
+```{r save objects, eval=FALSE}
+saveRDS(seurat_object,"seurat_object.rds")
+saveRDS(Allen_SEA_AD_Atlas,"Allen_SEA_AD_Atlas.rds")
+```
+
+
+#how the subset object was made
+
+```{r load in nmf embedded data, eval=FALSE}
+
+ seurat_object <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/seurat_object.rds")
+Allen_SEA_AD_Atlas <- readRDS("/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/Allen_SEA_AD_Atlas.rds")
+
+# Replace NA values in the "subclass_label" column of @meta.data with "NA"
+Allen_SEA_AD_Atlas@meta.data[["subclass_label"]][is.na(Allen_SEA_AD_Atlas@meta.data[["subclass_label"]])] <- "NotLabled"
+
+```
+
+```{r subset seurat object for upload to data file in package, eval=FALSE}
+
+seurat_object_sub<-subset_seurat_by_proportions(seurat_object = seurat_object, cell_type_col="segment", 500)
+allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell_type_col="subclass_label", 6000)
+
+```
+
+```{r, eval=FALSE}
+ 
+  seurat_merge<-merge_seurat_objects(seurat_object = seurat_object_sub, allen_sub)
+ 
+  #save data to data file
+  use_data(seurat_merge, compress = "bzip2", overwrite = TRUE)
+ 
+```
+
+
+
+
+Load in devtools to install package
+```{r}
+
+library(devtools)
+
+```
+
+
+```{r set lib path and install package}
+#cahnge below libpath to directory with sufficient storage for large packages on an HPC environment
+#.libPaths(c("/varidata/research/projects/henderson/THOMAS/R/4.4/library", .libPaths()))
+
+install_github("Goralsth/spatialintegration", build_vignettes = TRUE)
+
+library(SpatialIntegration)
+
+```
+
+
+```{r}
+
+#load the data
+data(seurat_merge)
+
+```
+
+```{r}
+is(seurat_merge, "Seurat")
+
+seurat_merge
+```
+
+
+
+Find contribution to overall dataset to avoid NMF fitting to only 1 data set
+```{r}
+#get indiceds of geomx data
+geo_ind<-is.na(seurat_merge@meta.data[["specimen_name"]])
+
+#get sum of geomx data
+sum(seurat_merge@assays[["RNA"]]@layers[["counts"]][geo_ind])
+#get sum of allen data
+sum(seurat_merge@assays[["RNA"]]@layers[["counts"]][-geo_ind])
+
+```
+
+The process and run nmf function will do the rescaling for us (allen is shrunk to scale to geomx)
+
+
+```{r}
+
+#for whatever reason, the singlet package will not load as a dependency, so load it here
+library(singlet)
+```
+
+```{r}
+
+seurat_merge<-process_and_run_nmf(seurat_merge, nmf_rank = 15)
+
+```
+
+
+
+
+
+```{r}
+
+
+seurat_merge<-perform_gsea_and_clustering(seurat_merge)
+
+
+```
+
+
+```{r}
+#View umap clusters
+print(DimPlot(seurat_merge, reduction = "umap"))
+#View GeoMx segment lables
+print(DimPlot(seurat_merge, reduction = "umap", group.by ="segment"))
+#View Cell subclass labels from allen
+print(DimPlot(seurat_merge, reduction = "umap", group.by ="subclass_label"))
+
+#Veiw Cells labled NA in original Allen data
+print(DimPlot(seurat_merge, reduction = "umap", group.by ="class_label"))
+```
+
+
+```{r}
+#View each cell type label and spatial annotations correlation to each nmf factor
+plot_nmf_correlation_heatmap(seurat_merge, "cell_type_nmfFactor_corr.png")
+```
+
+```{r}
+#View nmf loadings on umaps
+FeaturePlot(seurat_merge, features = paste0("NMF_", c(2,3,7,8,c(12:15))), raster = FALSE)
+
+```
+
+
+
+
+
+```{r}
+
+#get genesets that load with NeuN related factor
+plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
+  nmf_factor = 13,
+  output_file = "top20_enriched_nmf6.pdf"
+)
+
+#get genesets that load with pSyn related factor
+plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
+  nmf_factor = 2,
+  output_file = "top20_enriched_nmf15.pdf"
+)
+
+
+```
+
+
+
+
+
+```{r}
+
+GSEAHeatmap(seurat_merge, reduction = "nmf", max.terms.per.factor = 50)
+FeaturePlot(seurat_merge, features = paste0("NMF_", 1:10), raster = FALSE)
+DimPlot(seurat_merge, reduction = "umap", group.by ="segment")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
