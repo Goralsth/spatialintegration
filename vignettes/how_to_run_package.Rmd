@@ -243,7 +243,35 @@ print(bib_entries)
 ```
 
 
+[1] D. Agarwal, C. Sandor, V. Volpato, et al. “Common gene expression
+signatures in Parkinson’s disease are driven by changes in cell composition”.
+In: _npj Parkinson's Disease_ (2020). DOI: 10.1038/s41531-020-0112-5.
+<https://pubmed.ncbi.nlm.nih.gov/32317022/>.
 
+[2] R. Feleke, R. Reynolds, A. Smith, et al. “Cross-platform transcriptional
+profiling identifies common and distinct molecular pathologies in Lewy body
+diseases”. In: _Acta Neuropathologica_ 142 (2021), pp. 449-474. DOI:
+10.1007/s00401-021-02343-x. <https://doi.org/10.1007/s00401-021-02343-x>.
+
+[3] H. Fernandes, N. Patikas, S. Foskolou, et al. “Single-Cell Transcriptomics
+of Parkinson’s Disease Human In Vitro Models Reveals Dopamine Neuron-Specific
+Stress Responses”. In: _Cell Reports_ 33 (2020), p. 108263. DOI:
+10.1016/j.celrep.2020.108263. <https://doi.org/10.1016/j.celrep.2020.108263>.
+
+[4] T. Goralski, L. Meyerdirk, L. Breton, et al. “Spatial transcriptomics
+reveals molecular dysfunction associated with cortical Lewy pathology”. In:
+_Nature Communications_ 15 (2024), p. 2642. DOI: 10.1038/s41467-024-47027-8.
+<https://doi.org/10.1038/s41467-024-47027-8>.
+
+[5] M. van den Hurk, S. Lau, M. Marchetto, et al. “Druggable transcriptomic
+pathways revealed in Parkinson’s patient-derived midbrain neurons”. In: _npj
+Parkinson's Disease_ 8 (2022), pp. 1-18. DOI: 10.1038/s41531-022-00400-0.
+<https://doi.org/10.1038/s41531-022-00400-0>.
+
+[6] L. Yang, H. Qian, Y. Qin, et al. “scGPT: toward building a foundation model
+for single-cell multi-omics using generative AI”. In: _Nature Biotechnology_
+(2024). Accessed via PubMed. DOI: 10.1038/s41587-024-02238-2.
+<https://pubmed.ncbi.nlm.nih.gov/38409223/>.
 
 
 
