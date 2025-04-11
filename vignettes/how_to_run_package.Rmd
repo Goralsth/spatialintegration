@@ -97,6 +97,23 @@ allen_sub<-subset_seurat_by_proportions(seurat_object = Allen_SEA_AD_Atlas, cell
 ```
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Load in devtools to install package
 ```{r}
 
@@ -143,7 +160,7 @@ sum(seurat_merge@assays[["RNA"]]@layers[["counts"]][-geo_ind])
 
 ```
 
-The process and run nmf function will do the rescaling for us (allen is shrunk to scale to geomx)
+
 
 
 ```{r}
@@ -153,7 +170,7 @@ library(singlet)
 ```
 
 
-Run NMF on the merged dataset
+Run NMF on the merged dataset. The process and run nmf function will do the rescaling for us (allen is shrunk to scale to geomx). NMF rank 15 was predetermined
 ```{r}
 
 seurat_merge<-process_and_run_nmf(seurat_merge, nmf_rank = 15)
@@ -161,6 +178,9 @@ seurat_merge<-process_and_run_nmf(seurat_merge, nmf_rank = 15)
 ```
 # Ben ends presentation here
 
+
+
+perform_gsea_and_clustering computes umap and pca clusters, runs nmf. makes comparisons of pca and nmf clusters and runs GSEA for each nmf factor
 ```{r}
 
 
@@ -169,7 +189,7 @@ seurat_merge<-perform_gsea_and_clustering(seurat_merge)
 
 ```
 
-View plots
+View plots. 
 ```{r}
 #View umap clusters
 print(DimPlot(seurat_merge, reduction = "umap"))
@@ -182,7 +202,7 @@ print(DimPlot(seurat_merge, reduction = "umap", group.by ="subclass_label"))
 print(DimPlot(seurat_merge, reduction = "umap", group.by ="class_label"))
 ```
 
-View each cell type label and spatial annotations correlation to each nmf factor
+View each cell type label and spatial annotations correlation to each nmf factor. One hot encodes each cell type then correleates them with nmf factors
 ```{r}
 plot_nmf_correlation_heatmap(seurat_merge, "cell_type_nmfFactor_corr.png")
 ```
@@ -196,7 +216,7 @@ FeaturePlot(seurat_merge, features = paste0("NMF_", c(2,3,7,8,c(12:15))), raster
 
 
 
-Get top20 genesets that load with NeuN related factor
+Get top20 genesets that load with NeuN related factor    
 ```{r}
 plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
   nmf_factor = 13,
@@ -223,26 +243,6 @@ DimPlot(seurat_merge, reduction = "umap", group.by ="segment")
 
 
 
-```{r retrieve references}
-# Install RefManageR if not already installed
-if (!requireNamespace("RefManageR", quietly = TRUE)) {
-  install.packages("RefManageR")
-}
-
-# Load the package
-library(RefManageR)
-
-# Set the path to your .bib file (adjust if you moved it)
-bib_file <- "/varidata/research/projects/henderson/THOMAS/SpatialIntegration/SpatialIntegration/references.bib"  
-file.exists(bib_file)
-
-# Read the BibTeX file
-bib_entries <- ReadBib(bib_file)
-
-# Print the loaded references
-print(bib_entries)
-
-```
 
 
 [1] D. Agarwal, C. Sandor, V. Volpato, et al. “Common gene expression
