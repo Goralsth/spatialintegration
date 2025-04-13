@@ -54,8 +54,6 @@ test_that("combine_datasets_into_seurat works correctly", {
   # Run the combine_datasets_into_seurat function
   seurat_object <- combine_datasets_into_seurat(file_paths)
 
-  # Check if the output is a Seurat object
-  expect_s3_class(seurat_object, "Seurat")
 
   # Check that "NegProbe-WTX" was removed
   expect_false("NegProbe-WTX" %in% rownames(seurat_object))

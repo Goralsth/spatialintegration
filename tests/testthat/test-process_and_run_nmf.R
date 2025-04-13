@@ -11,7 +11,7 @@ test_that("process_and_run_nmf works correctly", {
   cells <- paste0("Cell", 1:10)
 
   # Create a random expression matrix for the Seurat object
-  expr_matrix <- matrix(rnorm(500), nrow = 50, ncol = 10, dimnames = list(genes, cells))
+  expr_matrix <- matrix(rnorm(500), nrow = 500, ncol = 100, dimnames = list(genes, cells))
 
   # Create a mock Seurat object
   seurat_obj <- CreateSeuratObject(counts = expr_matrix)
