@@ -44,4 +44,3 @@ test_that("merge_allen_geomx correctly merges two Seurat objects", {
   merged_counts <- GetAssayData(merged_seurat, slot = "counts")
   expect_equal(dim(merged_counts), c(length(all_genes), 4))
 })
-

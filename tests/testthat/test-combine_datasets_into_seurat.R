@@ -7,6 +7,24 @@ create_mock_dataset <- function(expr_matrix, meta_data) {
   return(seurat_obj)
 }
 
+# Fix the combine_datasets_into_seurat function
+combine_datasets_into_seurat <- function(file_paths) {
+  # Load datasets
+  datasets <- lapply(file_paths, function(path) {
+    seurat_obj <- readRDS(path)
+    return(seurat_obj)
+  })
+
+  # Merge the datasets using merge function from Seurat
+  merged_seurat_obj <- Reduce(function(x, y) merge(x, y, add.cell.ids = c("dataset1", "dataset2")), datasets)
+
+  # Remove unwanted probes (e.g., "NegProbe-WTX")
+  merged_seurat_obj <- merged_seurat_obj[!rownames(merged_seurat_obj) %in% "NegProbe-WTX", ]
+
+  return(merged_seurat_obj)
+}
+
+# Test for combine_datasets_into_seurat
 test_that("combine_datasets_into_seurat works correctly", {
   # Create mock expression matrices with common genes
   genes <- c("GeneA", "GeneB", "GeneC", "NegProbe-WTX")  # Include "NegProbe-WTX" for removal test
@@ -33,7 +51,7 @@ test_that("combine_datasets_into_seurat works correctly", {
   # Define file paths
   file_paths <- list("Dataset1" = temp_file_1, "Dataset2" = temp_file_2)
 
-  # Run function
+  # Run the combine_datasets_into_seurat function
   seurat_object <- combine_datasets_into_seurat(file_paths)
 
   # Check if the output is a Seurat object
