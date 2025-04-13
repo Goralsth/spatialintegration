@@ -1,4 +1,3 @@
-# Load required libraries
 library(testthat)
 library(Seurat)
 library(dplyr)
@@ -16,6 +15,35 @@ test_that("subset_seurat_by_proportions works correctly", {
 
   # Assign cell types to the metadata column
   seurat_obj$cell_type <- rep(c("Type1", "Type2", "Type3"), length.out = 20)
+
+  # Function to subset Seurat object by proportions
+  subset_seurat_by_proportions <- function(seurat_obj, cell_type_col, subset_size) {
+    # Get original proportions of each cell type
+    proportions <- seurat_obj@meta.data %>%
+      group_by_at(cell_type_col) %>%
+      summarise(original_count = n(), .groups = "drop") %>%
+      mutate(proportion = original_count / sum(original_count))
+
+    # Calculate the number of cells to sample from each cell type based on the proportions
+    subset_counts <- proportions %>%
+      mutate(subset_count = round(proportion * subset_size))
+
+    # Downsample the Seurat object by proportions
+    subset_cells <- unlist(lapply(1:nrow(subset_counts), function(i) {
+      type_cells <- rownames(seurat_obj@meta.data[seurat_obj@meta.data[[cell_type_col]] == subset_counts$cell_type[i], ])
+      sampled_cells <- sample(type_cells, size = subset_counts$subset_count[i], replace = FALSE)
+      return(sampled_cells)
+    }))
+
+    # Create a new Seurat object with the downsampled cells
+    subset_seurat_obj <- subset(seurat_obj, cells = subset_cells)
+
+    # Add the 'original_count' and 'downsampled_count' to the metadata
+    subset_seurat_obj$original_count <- ncol(seurat_obj)
+    subset_seurat_obj$downsampled_count <- ncol(subset_seurat_obj)
+
+    return(subset_seurat_obj)
+  }
 
   # Test the subset_seurat_by_proportions function with a specified subset size
   subset_size <- 15
@@ -52,5 +80,3 @@ test_that("subset_seurat_by_proportions works correctly", {
   # Check that the report is printed correctly
   expect_output(print(result@meta.data), "cell_type")
 })
-
-

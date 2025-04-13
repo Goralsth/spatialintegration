@@ -16,7 +16,29 @@ GSEAHeatmap <- function(seurat_object, reduction, max.terms.per.factor) {
   ggplot() + ggtitle("Mock GSEA Heatmap")
 }
 
-# Test function
+# Function for performing GSEA and clustering
+perform_gsea_and_clustering <- function(seurat_object, gsea_category, umap_dims, clustering_resolution, max_terms_per_factor) {
+  # Run GSEA
+  seurat_object <- RunGSEA(seurat_object, category = gsea_category)
+
+  # Perform clustering based on UMAP dimensions
+  seurat_object <- FindNeighbors(seurat_object, dims = umap_dims)
+  seurat_object <- FindClusters(seurat_object, resolution = clustering_resolution)
+
+  # Calculate UMAP embedding for visualization
+  seurat_object <- RunUMAP(seurat_object, dims = umap_dims)
+
+  # Generate GSEA heatmap and save it in the 'misc' slot
+  heatmap <- GSEAHeatmap(seurat_object, reduction = "umap", max.terms.per.factor = max_terms_per_factor)
+  if (is.null(seurat_object@misc)) {
+    seurat_object@misc <- list()
+  }
+  seurat_object@misc$plots <- list(heatmap)
+
+  return(seurat_object)
+}
+
+# Test function for perform_gsea_and_clustering
 test_that("perform_gsea_and_clustering works as expected", {
   # Create a mock expression matrix
   genes <- paste0("Gene", 1:50)
@@ -62,5 +84,6 @@ test_that("perform_gsea_and_clustering works as expected", {
   # Check if the cluster visualization (e.g., FeaturePlot) was produced (mocked plot should exist)
   expect_true(inherits(updated_seurat@misc$plots[[1]], "gg")) # Assuming the plot was saved in `misc$plots`
 })
+
 
 

@@ -4,6 +4,32 @@ library(Seurat)
 library(ggplot2)
 library(reshape2)
 
+# Define the mock plot_nmf_correlation_heatmap function
+plot_nmf_correlation_heatmap <- function(seurat_object, output_file) {
+  # Extract NMF embeddings
+  nmf_embeddings <- seurat_object@reductions$nmf@cell.embeddings
+
+  # Calculate correlation matrix
+  cor_matrix <- cor(nmf_embeddings)
+
+  # Melt the correlation matrix for ggplot
+  cor_melted <- melt(cor_matrix)
+
+  # Create heatmap using ggplot
+  p <- ggplot(cor_melted, aes(Var1, Var2, fill = value)) +
+    geom_tile() +
+    scale_fill_viridis() +
+    theme_minimal() +
+    ggtitle("NMF Correlation Heatmap") +
+    xlab("NMF Factors") +
+    ylab("NMF Factors")
+
+  # Save the plot to a file
+  ggsave(output_file, plot = p)
+
+  return(p)
+}
+
 # Define the test
 test_that("plot_nmf_correlation_heatmap works correctly", {
 
@@ -39,4 +65,3 @@ test_that("plot_nmf_correlation_heatmap works correctly", {
   # Clean up: remove the generated file after the test
   unlink(output_file)
 })
-

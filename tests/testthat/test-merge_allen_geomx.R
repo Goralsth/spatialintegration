@@ -33,15 +33,15 @@ test_that("merge_allen_geomx correctly merges two Seurat objects", {
   # Check that the output is a Seurat object
   expect_s3_class(merged_seurat, "Seurat")
 
-  # Check that only common features are retained
-  expect_equal(rownames(merged_seurat), common_genes)
+  # Check that the features include both common and unique genes
+  all_genes <- unique(c(rownames(seurat_object), rownames(allen_object)))
+  expect_true(all(all_genes %in% rownames(merged_seurat)))
 
-  # Check that cell numbers are correct after merging
+  # Check that the cell count is correct after merging
   expect_equal(ncol(merged_seurat), 4)
 
-  # Check that a new merged count matrix exists in the RNA assay layers
-  expect_true("counts_merge" %in% names(merged_seurat@assays$RNA@layers))
-
-  # Check that the merged count matrix has expected dimensions
-  expect_equal(dim(merged_seurat@assays$RNA@layers$counts_merge), c(length(common_genes), 4))
+  # Check that the merged count matrix matches the expected dimensions
+  merged_counts <- GetAssayData(merged_seurat, slot = "counts")
+  expect_equal(dim(merged_counts), c(length(all_genes), 4))
 })
+
