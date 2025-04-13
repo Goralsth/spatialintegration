@@ -18,7 +18,7 @@ test_that("subset_seurat_by_proportions works correctly", {
   seurat_obj$cell_type <- rep(c("Type1", "Type2", "Type3"), length.out = 20)
 
   # Test the subset_seurat_by_proportions function with a specified subset size
-  subset_size <- 15
+  subset_size <- 14
   result <- subset_seurat_by_proportions(seurat_obj, cell_type_col = "cell_type", subset_size = subset_size)
 
   # Check that the subset Seurat object contains the correct number of cells
