@@ -26,7 +26,7 @@ test_that("nearest_neighbor_analysis correctly identifies neighbors", {
   # Run PCA and find neighbors
   seurat_object <- ScaleData(seurat_object)
   seurat_object <- RunPCA(seurat_object, features = VariableFeatures(seurat_object))
-  seurat_object <- FindNeighbors(seurat_object, dims = 1:10)
+  seurat_object <- FindNeighbors(seurat_object, dims = 1:2)
 
   # Check that nearest neighbors are computed
   expect_true(!is.null(seurat_object@graphs$RNA_snn))

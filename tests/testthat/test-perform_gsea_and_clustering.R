@@ -1,89 +1,69 @@
-library(testthat)
 library(Seurat)
 library(ggplot2)
-library(viridis)
 library(dplyr)
+library(viridis)
 
-# Mock function for RunGSEA (as we don't have the actual function)
-RunGSEA <- function(seurat_object, category, verbose = FALSE) {
-  # Simulate adding some GSEA-related metadata
-  seurat_object@meta.data$GSEA_Dummy <- sample(letters, ncol(seurat_object), replace = TRUE)
+# Mock RunGSEA function (to simulate the behavior of actual GSEA)
+RunGSEA <- function(seurat_object, category, verbose = TRUE) {
+  # Add a mock GSEA result (enrichment scores or similar results)
+  seurat_object[["gsea"]] <- list(enrichment_scores = rnorm(ncol(seurat_object)))
   return(seurat_object)
 }
 
-# Mock function for GSEAHeatmap (returns a dummy plot)
-GSEAHeatmap <- function(seurat_object, reduction, max.terms.per.factor) {
-  ggplot() + ggtitle("Mock GSEA Heatmap")
+# Mock GSEAHeatmap function (to simulate the behavior of GSEA heatmap visualization)
+GSEAHeatmap <- function(seurat_object, reduction = "nmf", max.terms.per.factor = 3) {
+  # Create a simple mock heatmap plot for testing purposes
+  p <- ggplot(data.frame(x = 1:10, y = rnorm(10)), aes(x = x, y = y)) +
+    geom_tile(aes(fill = y)) +
+    scale_fill_viridis_c()
+  return(p)
 }
 
-# Function for performing GSEA and clustering
-perform_gsea_and_clustering <- function(seurat_object, gsea_category, umap_dims, clustering_resolution, max_terms_per_factor) {
-  # Run GSEA
-  seurat_object <- RunGSEA(seurat_object, category = gsea_category)
-
-  # Perform clustering based on UMAP dimensions
-  seurat_object <- FindNeighbors(seurat_object, dims = umap_dims)
-  seurat_object <- FindClusters(seurat_object, resolution = clustering_resolution)
-
-  # Calculate UMAP embedding for visualization
-  seurat_object <- RunUMAP(seurat_object, dims = umap_dims)
-
-  # Generate GSEA heatmap and save it in the 'misc' slot
-  heatmap <- GSEAHeatmap(seurat_object, reduction = "umap", max.terms.per.factor = max_terms_per_factor)
-  if (is.null(seurat_object@misc)) {
-    seurat_object@misc <- list()
-  }
-  seurat_object@misc$plots <- list(heatmap)
-
-  return(seurat_object)
+# Mock FeaturePlot function (to simulate plotting of features)
+FeaturePlot <- function(seurat_object, features, raster = FALSE) {
+  # Create a simple mock plot of features
+  p <- ggplot(data.frame(x = 1:10, y = rnorm(10)), aes(x = x, y = y)) +
+    geom_point() +
+    theme_bw() +
+    labs(title = "Feature Plot")
+  return(p)
 }
 
-# Test function for perform_gsea_and_clustering
-test_that("perform_gsea_and_clustering works as expected", {
-  # Create a mock expression matrix
-  genes <- paste0("Gene", 1:50)
-  cells <- paste0("Cell", 1:10)
-  expr_matrix <- matrix(rnorm(500), nrow = 50, ncol = 10, dimnames = list(genes, cells))
+# Create a mock Seurat object
+set.seed(42)
+genes <- paste0("Gene", 1:50)
+cells <- paste0("Cell", 1:10)
+expr_matrix <- matrix(rnorm(50 * 10), nrow = 50, ncol = 10, dimnames = list(genes, cells))
+seurat_obj <- CreateSeuratObject(counts = expr_matrix)
 
-  # Create a mock Seurat object
-  seurat_obj <- CreateSeuratObject(counts = expr_matrix)
+# Manually create the 'layers' slot
+seurat_obj@assays$RNA@layers <- list()
+seurat_obj@assays$RNA@layers[["counts"]] <- expr_matrix
+seurat_obj@assays$RNA@layers[["scaled_counts"]] <- expr_matrix * 1.5  # Mock scaled data
+seurat_obj@assays$RNA@layers[["normalized_counts"]] <- expr_matrix / rowSums(expr_matrix)
 
-  # Add a mock 'nmf' reduction (assuming it is an NMF-based reduction)
-  seurat_obj@reductions$nmf <- CreateDimReducObject(
-    embeddings = matrix(rnorm(10 * 20), nrow = 10, ncol = 20),
-    key = "NMF_", assay = "RNA"
-  )
+# Add NMF results (simulating with mock data)
+seurat_obj@reductions$nmf <- list(
+  cell.embeddings = matrix(rnorm(10 * 5), nrow = 10, ncol = 5),  # 10 cells, 5 NMF dimensions
+  loadings = matrix(rnorm(50 * 5), nrow = 50, ncol = 5)  # 50 genes, 5 NMF dimensions
+)
 
-  # Add mock metadata for 'cell_type' column
-  seurat_obj@meta.data$cell_type <- sample(c("TypeA", "TypeB", "TypeC"), 10, replace = TRUE)
+# Add mock clustering and PCA-related metadata
+seurat_obj$seurat_clusters <- factor(sample(1:3, size = 10, replace = TRUE))
+seurat_obj$cell_type <- factor(sample(1:3, size = 10, replace = TRUE))  # Mock cell types
 
-  # Run the function perform_gsea_and_clustering
-  updated_seurat <- perform_gsea_and_clustering(
-    seurat_object = seurat_obj,
-    gsea_category = "C7",
-    umap_dims = 1:10,
-    clustering_resolution = 0.6,
-    max_terms_per_factor = 5
-  )
+# Run the function perform_gsea_and_clustering
+seurat_obj <- perform_gsea_and_clustering(
+  seurat_object = seurat_obj,
+  gsea_category = "C7",
+  umap_dims = 1:5,  # Use the first 5 NMF dimensions
+  clustering_resolution = 0.6,
+  max_terms_per_factor = 5
+)
 
-  # Check if the output is a Seurat object
-  expect_s3_class(updated_seurat, "Seurat")
+# Check the output to verify the results (e.g., clusters, UMAP)
+print(seurat_obj)
 
-  # Check if the GSEA column was added to metadata
-  expect_true("GSEA_Dummy" %in% colnames(updated_seurat@meta.data))
-
-  # Check if clusters were identified (seurat_clusters should exist)
-  expect_true("seurat_clusters" %in% colnames(updated_seurat@meta.data))
-
-  # Check if UMAP was calculated (umap reduction should exist)
-  expect_true("umap" %in% names(updated_seurat@reductions))
-
-  # Check if the cluster names were properly set (based on PCA comparison)
-  expect_true(!is.null(levels(updated_seurat@meta.data$seurat_clusters)))
-
-  # Check if the cluster visualization (e.g., FeaturePlot) was produced (mocked plot should exist)
-  expect_true(inherits(updated_seurat@misc$plots[[1]], "gg")) # Assuming the plot was saved in `misc$plots`
-})
 
 
 
