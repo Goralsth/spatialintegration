@@ -1,61 +1,56 @@
+# Load required libraries
 library(testthat)
 library(Seurat)
 library(dplyr)
-library(progress)
 
-# Create a mock Seurat object for testing
-create_mock_seurat <- function(num_cells = 100, num_genes = 50, cell_types = c("TypeA", "TypeB")) {
-  # Generate random expression data
-  expr_matrix <- matrix(rnorm(num_cells * num_genes), nrow = num_genes, ncol = num_cells)
-  rownames(expr_matrix) <- paste0("Gene", 1:num_genes)
-  colnames(expr_matrix) <- paste0("Cell", 1:num_cells)
+# Define the test
+test_that("subset_seurat_by_proportions works correctly", {
 
-  # Generate random cell type metadata
-  cell_type_col <- sample(cell_types, num_cells, replace = TRUE)
-  meta_data <- data.frame(cell_type = cell_type_col, row.names = colnames(expr_matrix))
+  # Create a mock expression matrix for the Seurat object
+  genes <- paste0("Gene", 1:50)
+  cells <- paste0("Cell", 1:20)
 
-  # Create Seurat object
-  seurat_obj <- CreateSeuratObject(counts = expr_matrix, meta.data = meta_data)
-  return(seurat_obj)
-}
+  # Create a mock Seurat object with 3 cell types in metadata
+  expr_matrix <- matrix(rnorm(1000), nrow = 50, ncol = 20, dimnames = list(genes, cells))
+  seurat_obj <- CreateSeuratObject(counts = expr_matrix)
 
-test_that("subset_seurat_by_proportions correctly subsets Seurat object while maintaining cell type proportions", {
-  # Create a mock Seurat object with 100 cells and 2 cell types (TypeA and TypeB)
-  seurat_obj <- create_mock_seurat(num_cells = 100, num_genes = 50, cell_types = c("TypeA", "TypeB"))
+  # Assign cell types to the metadata column
+  seurat_obj$cell_type <- rep(c("Type1", "Type2", "Type3"), length.out = 20)
 
-  # Set the desired subset size (e.g., 50 cells)
-  subset_size <- 50
+  # Test the subset_seurat_by_proportions function with a specified subset size
+  subset_size <- 15
+  result <- subset_seurat_by_proportions(seurat_obj, cell_type_col = "cell_type", subset_size = subset_size)
 
-  # Call the function to subset the Seurat object
-  result <- subset_seurat_by_proportions(
-    seurat_object = seurat_obj,
-    cell_type_col = "cell_type",
-    subset_size = subset_size
-  )
+  # Check that the subset Seurat object contains the correct number of cells
+  expect_equal(ncol(result), subset_size)
 
-  # Extract the resulting subsetted Seurat object and the report
-  seurat_subset <- result
-  report <- result@meta.data %>%
+  # Check that the proportions of cell types in the subset are similar to the original proportions
+  original_proportions <- seurat_obj@meta.data %>%
     group_by(cell_type) %>%
-    summarise(count = n())
+    summarise(original_count = n(), .groups = "drop") %>%
+    mutate(proportion = original_count / sum(original_count))
 
-  # Check that the number of cells in the subset equals the desired subset size
-  expect_equal(ncol(seurat_subset), subset_size)
+  subset_proportions <- result@meta.data %>%
+    group_by(cell_type) %>%
+    summarise(downsampled_count = n(), .groups = "drop") %>%
+    mutate(proportion = downsampled_count / sum(downsampled_count))
 
-  # Check that the proportions of the cell types are approximately preserved in the subset
-  original_proportions <- table(seurat_obj@meta.data$cell_type) / ncol(seurat_obj)
-  subset_proportions <- table(seurat_subset@meta.data$cell_type) / ncol(seurat_subset)
+  # Compare original and subset proportions
+  for (cell_type in unique(original_proportions$cell_type)) {
+    original_proportion <- original_proportions$proportion[original_proportions$cell_type == cell_type]
+    subset_proportion <- subset_proportions$proportion[subset_proportions$cell_type == cell_type]
 
-  for (cell_type in unique(seurat_obj@meta.data$cell_type)) {
-    expect_equal(subset_proportions[cell_type], original_proportions[cell_type], tolerance = 0.1)
+    # Allow a small difference due to random sampling
+    expect_true(abs(original_proportion - subset_proportion) < 0.1)
   }
 
-  # Check that the report shows the original and downsampled counts for each cell type
-  expect_true("original_count" %in% colnames(report))
-  expect_true("downsampled_count" %in% colnames(report))
+  # Check that the report contains the expected columns
+  expect_true("cell_type" %in% colnames(result@meta.data))
+  expect_true("original_count" %in% colnames(result@meta.data))
+  expect_true("downsampled_count" %in% colnames(result@meta.data))
 
-  # Check that the total downsampled count matches the subset size
-  total_downsampled <- sum(report$downsampled_count)
-  expect_equal(total_downsampled, subset_size)
+  # Check that the report is printed correctly
+  expect_output(print(result@meta.data), "cell_type")
 })
+
 
