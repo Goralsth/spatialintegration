@@ -1,0 +1,184 @@
+---
+title: "spatialintegration"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{spatialintegration}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Parkinson’s disease (PD) is a neurodegenerative disease characterized by intraneuronal ɑ-synuclein aggregates known as Lewy pathology. Using GeoMx bulk spatial transcriptomics, we identified a molecular signature, Lewy-Associated Molecular Dysfunction from Aggregates (LAMDA), consisting of downregulated DNA repair, mitochondrial, and synaptic pathways in cortex of post-mortem PD and mouse model brains. Previous single-nucleus (sn) transcriptomics studies in PD lacked resolution on aggregate status, making it unclear how sn alterations align with the LAMDA signature. This package enables integration of bulk spatial and sn transcriptomics data and apply non-negative matrix factorization to learn shared features across data types in a low-dimensional space (aim 1) and transfer “spatial” labels from the bulk to sn data by machine learning (aim 2).
+
+
+
+Load in devtools to install package
+```{r}
+
+library(devtools)
+
+```
+
+
+# BEn present from here
+```{r set lib path and install package}
+#cahnge below libpath to directory with sufficient storage for large packages on an HPC environment
+#.libPaths(c("/varidata/research/projects/henderson/THOMAS/R/4.4/library", .libPaths()))
+
+install_github("Goralsth/spatialintegration")
+
+library(SpatialIntegration)
+
+```
+
+
+```{r}
+
+#load the data
+data(seurat_merge)
+
+```
+
+```{r}
+is(seurat_merge, "Seurat")
+
+seurat_merge
+```
+
+
+Find contribution to overall dataset to avoid NMF fitting to only 1 data set
+```{r}
+#get indiceds of geomx data
+geo_ind<-is.na(seurat_merge@meta.data[["specimen_name"]])
+
+#get sum of geomx data
+sum(seurat_merge@assays[["RNA"]]@layers[["counts"]][geo_ind])
+#get sum of allen data
+sum(seurat_merge@assays[["RNA"]]@layers[["counts"]][-geo_ind])
+
+```
+
+
+
+
+```{r}
+
+#for whatever reason, the singlet package will not load as a dependency, so load it here
+library(singlet)
+```
+
+
+Run NMF on the merged dataset. The process and run nmf function will do the rescaling for us (allen is shrunk to scale to geomx). NMF rank 15 was predetermined
+```{r}
+
+seurat_merge<-process_and_run_nmf(seurat_merge, nmf_rank = 15)
+
+```
+# Ben ends presentation here
+
+
+
+perform_gsea_and_clustering computes umap and pca clusters, runs nmf. makes comparisons of pca and nmf clusters and runs GSEA for each nmf factor
+```{r, fig.dim = c(8, 10)}
+
+
+seurat_merge<-perform_gsea_and_clustering(seurat_merge)
+
+
+```
+
+View plots. 
+```{r,fig.dim = c(8, 10) }
+#View umap clusters
+print(DimPlot(seurat_merge, reduction = "umap"))
+#View GeoMx segment lables
+print(DimPlot(seurat_merge, reduction = "umap", group.by ="segment"))
+#View Cell subclass labels from allen
+print(DimPlot(seurat_merge, reduction = "umap", group.by ="subclass_label"))
+
+#Veiw Cells labled NA in original Allen data
+print(DimPlot(seurat_merge, reduction = "umap", group.by ="class_label"))
+```
+
+View each cell type label and spatial annotations correlation to each nmf factor. One hot encodes each cell type then correleates them with nmf factors
+```{r, fig.dim = c(8, 10)}
+plot_nmf_correlation_heatmap(seurat_merge, "cell_type_nmfFactor_corr.png")
+```
+
+
+View nmf loadings on umaps
+```{r, fig.dim = c(8, 10)}
+FeaturePlot(seurat_merge, features = paste0("NMF_", c(2,3,7,8,c(12:15))), raster = FALSE)
+
+```
+
+
+
+Get top20 genesets that load with NeuN related factor    
+```{r,fig.dim = c(8, 20) }
+plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
+  nmf_factor = 13,
+  output_file = "top20_enriched_nmf6.pdf"
+)
+
+#get genesets that load with pSyn related factor
+plot_top20_enriched_pathways_single(seurat_object = seurat_merge,
+  nmf_factor = 2,
+  output_file = "top20_enriched_nmf15.pdf"
+)
+
+
+```
+
+
+Plot GSEA heatmanp and NMF features
+```{r plot GSEA and NMF features,fig.dim = c(8, 10)}
+
+GSEAHeatmap(seurat_merge, reduction = "nmf", max.terms.per.factor = 50)
+
+DimPlot(seurat_merge, reduction = "umap", group.by ="segment")
+```
+
+
+```{r plot GSEA NMF features,fig.dim = c(8, 15)}
+FeaturePlot(seurat_merge, features = paste0("NMF_", 1:10), raster = FALSE)
+```
+
+
+
+[1] D. Agarwal, C. Sandor, V. Volpato, et al. “Common gene expression
+signatures in Parkinson’s disease are driven by changes in cell composition”.
+In: _npj Parkinson's Disease_ (2020). DOI: 10.1038/s41531-020-0112-5.
+<https://pubmed.ncbi.nlm.nih.gov/32317022/>.
+
+[2] R. Feleke, R. Reynolds, A. Smith, et al. “Cross-platform transcriptional
+profiling identifies common and distinct molecular pathologies in Lewy body
+diseases”. In: _Acta Neuropathologica_ 142 (2021), pp. 449-474. DOI:
+10.1007/s00401-021-02343-x. <https://doi.org/10.1007/s00401-021-02343-x>.
+
+[3] H. Fernandes, N. Patikas, S. Foskolou, et al. “Single-Cell Transcriptomics
+of Parkinson’s Disease Human In Vitro Models Reveals Dopamine Neuron-Specific
+Stress Responses”. In: _Cell Reports_ 33 (2020), p. 108263. DOI:
+10.1016/j.celrep.2020.108263. <https://doi.org/10.1016/j.celrep.2020.108263>.
+
+[4] T. Goralski, L. Meyerdirk, L. Breton, et al. “Spatial transcriptomics
+reveals molecular dysfunction associated with cortical Lewy pathology”. In:
+_Nature Communications_ 15 (2024), p. 2642. DOI: 10.1038/s41467-024-47027-8.
+<https://doi.org/10.1038/s41467-024-47027-8>.
+
+[5] M. van den Hurk, S. Lau, M. Marchetto, et al. “Druggable transcriptomic
+pathways revealed in Parkinson’s patient-derived midbrain neurons”. In: _npj
+Parkinson's Disease_ 8 (2022), pp. 1-18. DOI: 10.1038/s41531-022-00400-0.
+<https://doi.org/10.1038/s41531-022-00400-0>.
+
+[6] L. Yang, H. Qian, Y. Qin, et al. “scGPT: toward building a foundation model
+for single-cell multi-omics using generative AI”. In: _Nature Biotechnology_
+(2024). Accessed via PubMed. DOI: 10.1038/s41587-024-02238-2.
+<https://pubmed.ncbi.nlm.nih.gov/38409223/>.
+
